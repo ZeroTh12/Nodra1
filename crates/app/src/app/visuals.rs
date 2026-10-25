@@ -877,111 +877,45 @@ pub(super) fn shadow_style_for(theme: &Theme) -> ShadowStyle {
 }
 
 pub(super) fn tray_icon_image(size: i32, _accent: [u8; 3], _dark: bool) -> Vec<u8> {
-    // The product mark, variant E: white corner brackets and a 2×2 grid on an indigo rounded
-    // plate. Same geometry as scripts/make-msix-assets.py (64-unit mark), so the tray, the
-    // settings window, the exe and the Store tiles all show one icon. Premultiplied BGRA.
-    const PLATE: [f32; 3] = [0x47 as f32, 0x68 as f32, 0xDE as f32];
-    const SS: i32 = 4; // supersampling per axis
-    let side = size as f32;
-    let plate_r = side * 0.22;
-    // Mark occupies 76% of the side (12% margin), like the taskbar-size tiles.
-    let unit = side * 0.76 / 64.0;
-    let origin = side * 0.12;
-    let sample = |sx: f32, sy: f32| -> (f32, f32) {
-        // (plate coverage, mark alpha) at one sample point.
-        let dx = (sx - side / 2.0).abs() - (side / 2.0 - plate_r);
-        let dy = (sy - side / 2.0).abs() - (side / 2.0 - plate_r);
-        let d = (dx.max(0.0).powi(2) + dy.max(0.0).powi(2)).sqrt() + dx.max(dy).min(0.0) - plate_r;
-        let plate = (0.5 - d).clamp(0.0, 1.0);
-        // Mark coordinates in 64-unit space.
-        let mx = (sx - origin) / unit;
-        let my = (sy - origin) / unit;
-        let mut mark = 0.0f32;
-        let stroke_half = 3.0;
-        // Straight legs of the four brackets as capsules (round caps).
-        let legs: [((f32, f32), (f32, f32)); 8] = [
-            ((27.0, 8.0), (14.0, 8.0)),
-            ((8.0, 14.0), (8.0, 27.0)),
-            ((37.0, 8.0), (50.0, 8.0)),
-            ((56.0, 14.0), (56.0, 27.0)),
-            ((8.0, 37.0), (8.0, 50.0)),
-            ((14.0, 56.0), (27.0, 56.0)),
-            ((56.0, 37.0), (56.0, 50.0)),
-            ((50.0, 56.0), (37.0, 56.0)),
-        ];
-        for ((ax, ay), (bx, by)) in legs {
-            let (vx, vy) = (bx - ax, by - ay);
-            let t = (((mx - ax) * vx + (my - ay) * vy) / (vx * vx + vy * vy)).clamp(0.0, 1.0);
-            let (cx, cy) = (ax + vx * t, ay + vy * t);
-            let dist = ((mx - cx).powi(2) + (my - cy).powi(2)).sqrt() - stroke_half;
-            mark = mark.max((0.5 - dist * unit).clamp(0.0, 1.0));
+    // The product mark: the shipped icon as 64×64 straight BGRA (`assets/mark-64.bgra`, made
+    // from the same picture as the .ico by scripts/make-mark-bgra.ps1), premultiplied once and
+    // box-filtered down to the asked size. The tray and the settings caption ask for 16–48 px
+    // at the DPI in play; sizes above the source keep its 64 px. Premultiplied BGRA out.
+    const SRC: usize = 64;
+    const MARK: &[u8; SRC * SRC * 4] = include_bytes!("../../assets/mark-64.bgra");
+    let dst = size.clamp(8, SRC as i32) as usize;
+    let mut plate = [0u8; SRC * SRC * 4];
+    for (px, src) in plate.chunks_exact_mut(4).zip(MARK.chunks_exact(4)) {
+        let a = src[3] as u32;
+        for c in 0..3 {
+            px[c] = ((src[c] as u32 * a + 127) / 255) as u8;
         }
-        // Quarter arcs of radius 6 around the bracket corners, limited to their quadrant.
-        let arcs: [((f32, f32), bool, bool); 4] = [
-            ((14.0, 14.0), true, true),
-            ((50.0, 14.0), false, true),
-            ((14.0, 50.0), true, false),
-            ((50.0, 50.0), false, false),
-        ];
-        for ((cx, cy), left, top) in arcs {
-            let in_quadrant =
-                (if left { mx <= cx } else { mx >= cx }) && (if top { my <= cy } else { my >= cy });
-            if in_quadrant {
-                let dist =
-                    (((mx - cx).powi(2) + (my - cy).powi(2)).sqrt() - 6.0).abs() - stroke_half;
-                mark = mark.max((0.5 - dist * unit).clamp(0.0, 1.0));
-            }
-        }
-        // 2×2 rounded squares (8 units, radius 2); the off-diagonal pair is lighter.
-        let squares: [(f32, f32, f32); 4] = [
-            (22.0, 22.0, 1.0),
-            (35.0, 22.0, 0.65),
-            (22.0, 35.0, 0.65),
-            (35.0, 35.0, 1.0),
-        ];
-        for (qx, qy, alpha) in squares {
-            let (ccx, ccy) = (qx + 4.0, qy + 4.0);
-            let ex = (mx - ccx).abs() - 2.0;
-            let ey = (my - ccy).abs() - 2.0;
-            let dist =
-                (ex.max(0.0).powi(2) + ey.max(0.0).powi(2)).sqrt() + ex.max(ey).min(0.0) - 2.0;
-            mark = mark.max((0.5 - dist * unit).clamp(0.0, 1.0) * alpha);
-        }
-        (plate, mark)
-    };
-    let mut bgra = vec![0u8; (size * size * 4) as usize];
-    let inv = 1.0 / (SS * SS) as f32;
-    for y in 0..size {
-        for x in 0..size {
-            let (mut plate, mut mark) = (0.0f32, 0.0f32);
-            for sy in 0..SS {
-                for sx in 0..SS {
-                    let px = x as f32 + (sx as f32 + 0.5) / SS as f32;
-                    let py = y as f32 + (sy as f32 + 0.5) / SS as f32;
-                    let (p, m) = sample(px, py);
-                    plate += p;
-                    mark += m * p;
+        px[3] = src[3];
+    }
+    let mut out = vec![0u8; dst * dst * 4];
+    for y in 0..dst {
+        let sy0 = y * SRC / dst;
+        let sy1 = ((y + 1) * SRC / dst).max(sy0 + 1).min(SRC);
+        for x in 0..dst {
+            let sx0 = x * SRC / dst;
+            let sx1 = ((x + 1) * SRC / dst).max(sx0 + 1).min(SRC);
+            let (mut sum, mut count) = ([0u32; 4], 0u32);
+            for sy in sy0..sy1 {
+                for sx in sx0..sx1 {
+                    let i = (sy * SRC + sx) * 4;
+                    for c in 0..4 {
+                        sum[c] += plate[i + c] as u32;
+                    }
+                    count += 1;
                 }
             }
-            plate *= inv;
-            mark *= inv;
-            if plate <= 0.0 {
-                continue;
+            let o = (y * dst + x) * 4;
+            for c in 0..4 {
+                out[o + c] = (sum[c] / count) as u8;
             }
-            // Composite white mark over the plate, then premultiply by the plate coverage.
-            let mix = |c: f32| {
-                (c * (plate - mark) + 255.0 * mark)
-                    .round()
-                    .clamp(0.0, 255.0) as u8
-            };
-            let i = ((y * size + x) * 4) as usize;
-            bgra[i] = mix(PLATE[2]);
-            bgra[i + 1] = mix(PLATE[1]);
-            bgra[i + 2] = mix(PLATE[0]);
-            bgra[i + 3] = (plate * 255.0).round() as u8;
         }
     }
-    bgra
+    out
 }
 
 impl App {
@@ -1516,24 +1450,19 @@ mod prewarm_tests {
 mod tray_icon_tests {
     use super::tray_icon_image;
 
-    /// Every pixel is premultiplied (colour ≤ alpha) and the corners stay transparent.
+    /// Every pixel is premultiplied (colour ≤ alpha) and the mark is not empty.
     #[test]
-    fn tray_icon_is_premultiplied_with_rounded_corners() {
+    fn tray_icon_is_premultiplied() {
         for size in [16, 20, 24, 32, 48] {
             let px = tray_icon_image(size, [0, 0, 0], true);
             assert_eq!(px.len(), (size * size * 4) as usize);
+            assert!(px.chunks(4).any(|c| c[3] > 0), "empty mark at {size}");
             for c in px.chunks(4) {
                 assert!(
                     c[0] <= c[3] && c[1] <= c[3] && c[2] <= c[3],
                     "not premultiplied"
                 );
             }
-            assert!(
-                px[3] < 40,
-                "corner pixel must be (nearly) transparent at {size}"
-            );
-            let centre = (((size / 2) * size + size / 2) * 4) as usize;
-            assert_eq!(px[centre + 3], 255, "plate must be opaque at {size}");
         }
     }
 
