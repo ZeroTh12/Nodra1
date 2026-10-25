@@ -878,9 +878,11 @@ pub(super) fn shadow_style_for(theme: &Theme) -> ShadowStyle {
 
 pub(super) fn tray_icon_image(size: i32, _accent: [u8; 3], _dark: bool) -> Vec<u8> {
     // The product mark: the shipped icon as 64×64 straight BGRA (`assets/mark-64.bgra`, made
-    // from the same picture as the .ico by scripts/make-mark-bgra.ps1), premultiplied once and
-    // box-filtered down to the asked size. The tray and the settings caption ask for 16–48 px
-    // at the DPI in play; sizes above the source keep its 64 px. Premultiplied BGRA out.
+    // from the same picture as the .ico by scripts/make-mark-bgra.ps1), premultiplied once,
+    // box-filtered down to the asked size and clipped to the rounded plate the drawn mark it
+    // replaced used (corners of 22 % of the side, transparent outside), so the footprint of
+    // the icon is unchanged. The tray and the settings caption ask for 16–48 px at the DPI in
+    // play; sizes above the source keep its 64 px. Premultiplied BGRA out.
     const SRC: usize = 64;
     const MARK: &[u8; SRC * SRC * 4] = include_bytes!("../../assets/mark-64.bgra");
     let dst = size.clamp(8, SRC as i32) as usize;
@@ -912,6 +914,23 @@ pub(super) fn tray_icon_image(size: i32, _accent: [u8; 3], _dark: bool) -> Vec<u
             let o = (y * dst + x) * 4;
             for c in 0..4 {
                 out[o + c] = (sum[c] / count) as u8;
+            }
+        }
+    }
+    // The plate mask: the rounded square the replaced glyph sat on, applied at the output
+    // resolution so the edge stays one antialiased pixel wide.
+    let (half, radius) = (dst as f32 / 2.0, 0.22 * dst as f32);
+    for y in 0..dst {
+        for x in 0..dst {
+            let dx = (x as f32 + 0.5 - half).abs() - (half - radius);
+            let dy = (y as f32 + 0.5 - half).abs() - (half - radius);
+            let distance = dx.max(0.0).hypot(dy.max(0.0)) + dx.max(dy).min(0.0) - radius;
+            let coverage = (0.5 - distance).clamp(0.0, 1.0);
+            if coverage < 1.0 {
+                let i = (y * dst + x) * 4;
+                for c in 0..4 {
+                    out[i + c] = (out[i + c] as f32 * coverage).round() as u8;
+                }
             }
         }
     }
@@ -1450,9 +1469,10 @@ mod prewarm_tests {
 mod tray_icon_tests {
     use super::tray_icon_image;
 
-    /// Every pixel is premultiplied (colour ≤ alpha) and the mark is not empty.
+    /// Premultiplied, with the rounded plate of the replaced glyph: transparent corners, an
+    /// opaque centre (the picture is fully opaque).
     #[test]
-    fn tray_icon_is_premultiplied() {
+    fn tray_icon_is_premultiplied_with_rounded_corners() {
         for size in [16, 20, 24, 32, 48] {
             let px = tray_icon_image(size, [0, 0, 0], true);
             assert_eq!(px.len(), (size * size * 4) as usize);
@@ -1463,6 +1483,12 @@ mod tray_icon_tests {
                     "not premultiplied"
                 );
             }
+            assert!(
+                px[3] < 40,
+                "corner pixel must be (nearly) transparent at {size}"
+            );
+            let centre = (((size / 2) * size + size / 2) * 4) as usize;
+            assert_eq!(px[centre + 3], 255, "plate must be opaque at {size}");
         }
     }
 
