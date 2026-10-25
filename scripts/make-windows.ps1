@@ -70,7 +70,7 @@ try {
 
   $distRoot = Join-Path $root "dist"
   $stagingRoot = [IO.Path]::GetFullPath((Join-Path $distRoot ".staging"))
-  $baseName = "pecofence-v$Version-x64"
+  $baseName = "nodra-v$Version-x64"
   $common = Join-Path $stagingRoot "$baseName-common"
   Reset-Stage $common
   foreach ($exe in @("pecofence.exe", "pecofence-watchdog.exe", "pecofence-cli.exe")) {

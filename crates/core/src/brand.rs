@@ -4,9 +4,13 @@ use std::env::VarError;
 use std::ffi::OsString;
 
 pub const NAME: &str = "PecoFence";
+/// The product name shown to users; the internal NAME above keeps the config folder,
+/// autostart entry and pipe names stable across the rename.
+pub const DISPLAY_NAME: &str = "Nodra";
 /// Microsoft Store product id (Partner Center, packaging/msix/identity.json).
 pub const STORE_PRODUCT_ID: &str = "9MV6WG3XNWSX";
-pub const REPOSITORY_URL: &str = "https://github.com/DayuanJiang/PecoFence";
+// OWNER is replaced with the GitHub account name when the fork is published.
+pub const REPOSITORY_URL: &str = "https://github.com/OWNER/Nodra";
 pub const LEGACY_DATA_DIR: &str = "OpenFence";
 pub const LEGACY_AUTOSTART: &str = "openFence";
 

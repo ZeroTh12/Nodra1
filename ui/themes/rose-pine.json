@@ -1,0 +1,36 @@
+{
+  "base": "liquidGlass",
+  "blur": 15,
+  "chroma": 0.75,
+  "refraction": 1,
+  "rimLight": 1.2,
+  "cornerRadius": 22,
+  "shadowOpacity": 0.3,
+  "accent": "#C4A7E7",
+  "light": {
+    "tint": "#FAF4EDC8",
+    "luminosity": 0.55,
+    "glassLayerFill": "#F2E9E166",
+    "textPrimary": "#575279",
+    "textSecondary": "#797593",
+    "textTertiary": "#9893A5",
+    "stroke": "#907AA940",
+    "tabActiveFill": "#F2E9E1D9",
+    "subtleHover": "#DFD8E380",
+    "selectionFill": "#907AA935",
+    "selectionStroke": "#907AA980"
+  },
+  "dark": {
+    "tint": "#191724C0",
+    "luminosity": 0.42,
+    "glassLayerFill": "#1F1D2E66",
+    "textPrimary": "#E0DEF4",
+    "textSecondary": "#908CAA",
+    "textTertiary": "#6E6A86",
+    "stroke": "#EBBCBA3E",
+    "tabActiveFill": "#26233AD9",
+    "subtleHover": "#26233A99",
+    "selectionFill": "#EBBCBA3D",
+    "selectionStroke": "#EBBCBA98"
+  }
+}

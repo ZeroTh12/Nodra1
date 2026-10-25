@@ -17,7 +17,7 @@
   })();
 </script>
 <script src="i18n.js"></script>
-<title>PecoFence 设置</title>
+<title>Nodra 设置</title>
 <style>
   /* Self-contained: the WebView document is embedded in the executable and works offline.
      Tokens follow the Windows 11 Fluent palette; keep --sheet in sync with page_background
@@ -332,7 +332,7 @@
   <nav aria-label="设置导航">
     <div class="brand">
       <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M27 8H14a6 6 0 0 0-6 6v13M37 8h13a6 6 0 0 1 6 6v13M8 37v13a6 6 0 0 0 6 6h13M56 37v13a6 6 0 0 1-6 6H37" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><rect x="22" y="22" width="8" height="8" rx="2" fill="currentColor"/><rect x="35" y="22" width="8" height="8" rx="2" fill="currentColor" opacity=".65"/><rect x="22" y="35" width="8" height="8" rx="2" fill="currentColor" opacity=".65"/><rect x="35" y="35" width="8" height="8" rx="2" fill="currentColor"/></svg>
-      <span class="brand-name">PecoFence</span>
+      <span class="brand-name">Nodra</span>
     </div>
     <a href="#general" class="sel" data-page="general" aria-label="常规" title="常规"><span class="ic">&#xE713;</span><span class="nav-text">常规</span></a>
     <a href="#fences" data-page="fences" aria-label="栅栏" title="栅栏"><span class="ic">&#xE71D;</span><span class="nav-text">栅栏</span></a>
@@ -521,15 +521,15 @@
       <header class="page-header"><h2>关于</h2></header>
       <div class="about-head">
         <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M27 8H14a6 6 0 0 0-6 6v13M37 8h13a6 6 0 0 1 6 6v13M8 37v13a6 6 0 0 0 6 6h13M56 37v13a6 6 0 0 1-6 6H37" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><rect x="22" y="22" width="8" height="8" rx="2" fill="currentColor"/><rect x="35" y="22" width="8" height="8" rx="2" fill="currentColor" opacity=".65"/><rect x="22" y="35" width="8" height="8" rx="2" fill="currentColor" opacity=".65"/><rect x="35" y="35" width="8" height="8" rx="2" fill="currentColor"/></svg>
-        <div><div class="name">PecoFence <span id="ver"></span></div><div class="s">开源的 Windows 桌面整理工具</div><div class="s">Apache 2.0 许可证</div><div class="s" id="memDetail">—</div></div>
+        <div><div class="name">Nodra <span id="ver"></span></div><div class="s">开源的 Windows 桌面整理工具</div><div class="s">Apache 2.0 许可证</div><div class="s">联系邮箱：yz13133916714@163.com</div><div class="s" id="memDetail">—</div></div>
       </div>
       <div class="card" id="updateCard" hidden><div class="l"><span class="ic">&#xE895;</span><div><div class="t">更新</div><div class="s" id="updateStatus"></div></div></div><button id="updateAction"></button></div>
       <div class="card"><div class="l"><span class="ic">&#xE897;</span><div><div class="t">使用手册</div><div class="s">每个功能都有动画演示</div></div></div><button id="openManual">打开</button></div>
-      <div class="card"><div class="l"><span class="ic">&#xE734;</span><div><div class="t">喜欢 PecoFence 吗？</div><div class="s">你的支持能让更多人发现它。</div></div></div>
+      <div class="card"><div class="l"><span class="ic">&#xE734;</span><div><div class="t">喜欢 Nodra 吗？</div><div class="s">你的支持能让更多人发现它。</div></div></div>
         <div class="actions"><button id="rateStore" hidden>在 Microsoft Store 评分</button><button id="starRepo">在 GitHub 点 Star</button></div></div>
       <h3 id="feedbackHeading">反馈</h3>
       <p class="page-lede">遇到问题或有什么想法，写在这里发给开发者，每条都会看。</p>
-      <div class="fb-note" id="fbCrashNote" role="note" hidden><span class="ic">&#xE7BA;</span><span>PecoFence 上次意外关闭了，那次的日志会一起发送。如果还记得当时在做什么，请写在下面。</span></div>
+      <div class="fb-note" id="fbCrashNote" role="note" hidden><span class="ic">&#xE7BA;</span><span>Nodra 上次意外关闭了，那次的日志会一起发送。如果还记得当时在做什么，请写在下面。</span></div>
       <div class="card stack fb-form">
         <div class="l"><span class="ic">&#xED15;</span><div><div class="t" id="fbKindTitle">类型</div></div></div>
         <div class="fb-kinds" role="radiogroup" aria-labelledby="fbKindTitle">
@@ -546,7 +546,7 @@
         <summary><div class="l"><span class="ic">&#xE7B3;</span><div><div class="t">查看要发送的内容</div></div></div><span class="ic chev">&#xE70D;</span></summary>
         <pre class="fb-preview" id="fbPreview"></pre>
       </details>
-      <div class="fb-foot"><div class="s">反馈只会发给 PecoFence 开发者。</div>
+      <div class="fb-foot"><div class="s">反馈只会发给 Nodra 开发者，或邮件 yz13133916714@163.com。</div>
         <button type="button" class="accent" id="fbSend"><span class="idle">发送</span><span class="busy">正在发送…</span></button></div>
       <h3>疑难解答</h3>
       <div class="card"><div class="l"><span class="ic">&#xE90F;</span><div><div class="t">Windows 桌面图标</div><div class="s" id="desktopIconsStatus"></div></div></div>
@@ -1242,7 +1242,7 @@
     status.textContent =
       s === 'checking' ? t("正在检查更新…")
       : s === 'upToDate' ? t("已是最新版本")
-      : s === 'available' ? (install ? tf("有新版本 {0}。安装时 PecoFence 会先退出，装好后自动重新打开。", version) : tf("有新版本 {0}", version))
+      : s === 'available' ? (install ? tf("有新版本 {0}。安装时 Nodra 会先退出，装好后自动重新打开。", version) : tf("有新版本 {0}", version))
       : s === 'downloading' ? t("正在下载新版本…")
       : s === 'checkFailed' ? t("检查更新失败，请稍后再试")
       : s === 'downloadFailed' ? t("下载失败，请稍后再试")

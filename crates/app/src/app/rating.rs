@@ -105,7 +105,7 @@ impl App {
         }
         match crate::notice::Notice::show(
             &self.ctx,
-            pecofence_core::i18n::text("喜欢 PecoFence 吗？"),
+            pecofence_core::i18n::text("喜欢 Nodra 吗？"),
             pecofence_core::i18n::text("在 Microsoft Store 给它打个分，几秒钟就好。"),
             pecofence_core::i18n::text("去评分"),
             crate::notice::locale(),

@@ -10,7 +10,7 @@
 #endif
 #define NumericVersion Copy(AppVersion, 1, Pos('-', AppVersion + '-') - 1)
 #define ProductId "DayuanJiang.PecoFence"
-#define ProductName "PecoFence"
+#define ProductName "Nodra"
 #define CurrentRunName "PecoFence"
 #define LegacyRunName "openFence"
 #define AppMutexNames "Local\PecoFence.SingleInstance,Local\openFence.SingleInstance"
@@ -18,7 +18,7 @@
 ; packaging command never sets TestIdentity; test installers must never be shipped.
 #ifdef TestIdentity
   #define ProductId "PecoFence.InstallerTest." + TestIdentity
-  #define ProductName "PecoFence Installer Test " + TestIdentity
+  #define ProductName "Nodra Installer Test " + TestIdentity
   #define CurrentRunName ProductId
   #define LegacyRunName ProductId + ".legacy"
   #define AppMutexNames "Local\" + ProductId
@@ -29,7 +29,7 @@ AppId={#ProductId}
 AppName={#ProductName}
 AppVersion={#AppVersion}
 VersionInfoVersion={#NumericVersion}
-AppPublisher=Dayuan Jiang
+AppPublisher=Nodra Project
 AppPublisherURL=https://github.com/{#Repository}
 AppSupportURL=https://github.com/{#Repository}/issues
 AppUpdatesURL=https://github.com/{#Repository}/releases
@@ -92,36 +92,36 @@ Filename: "{app}\pecofence.exe"; Description: "{cm:LaunchProgram,{#ProductName}}
 Filename: "{app}\pecofence.exe"; Flags: nowait; Check: RestartAfterUpdate
 
 [CustomMessages]
-en.AlreadyInstalled=PecoFence is already installed in %1. To install it in another folder, uninstall it first.
-zh_CN.AlreadyInstalled=PecoFence 已经装在 %1。想换个位置，请先卸载。
-zh_TW.AlreadyInstalled=PecoFence 已經安裝在 %1。想換個位置，請先解除安裝。
-ja.AlreadyInstalled=PecoFence はすでに %1 にインストールされています。別のフォルダーに入れるには、先にアンインストールしてください。
-ko.AlreadyInstalled=PecoFence가 이미 %1에 설치되어 있습니다. 다른 폴더에 설치하려면 먼저 제거하세요.
-de.AlreadyInstalled=PecoFence ist bereits in %1 installiert. Um es in einen anderen Ordner zu installieren, deinstalliere es zuerst.
-fr.AlreadyInstalled=PecoFence est déjà installé dans %1. Pour l'installer dans un autre dossier, désinstallez-le d'abord.
-es.AlreadyInstalled=PecoFence ya está instalado en %1. Para instalarlo en otra carpeta, desinstálalo primero.
-pt_BR.AlreadyInstalled=O PecoFence já está instalado em %1. Para instalá-lo em outra pasta, desinstale-o primeiro.
-ru.AlreadyInstalled=PecoFence уже установлен в %1. Чтобы установить его в другую папку, сначала удалите его.
-en.InvalidDestination=This folder already contains other files. Choose an empty folder, or the folder that already contains PecoFence.
-zh_CN.InvalidDestination=这个文件夹里已经有别的文件了。请选一个空文件夹，或者原来放 PecoFence 的文件夹。
-zh_TW.InvalidDestination=這個資料夾裡已經有其他檔案。請選一個空資料夾，或原本放 PecoFence 的資料夾。
-ja.InvalidDestination=このフォルダーには別のファイルがあります。空のフォルダーか、PecoFence が入っているフォルダーを選んでください。
-ko.InvalidDestination=이 폴더에는 이미 다른 파일이 있습니다. 빈 폴더나 PecoFence가 들어 있는 폴더를 선택하세요.
-de.InvalidDestination=Dieser Ordner enthält bereits andere Dateien. Wähle einen leeren Ordner oder den Ordner, in dem PecoFence schon liegt.
-fr.InvalidDestination=Ce dossier contient déjà d'autres fichiers. Choisissez un dossier vide ou celui qui contient déjà PecoFence.
-es.InvalidDestination=Esta carpeta ya tiene otros archivos. Elige una carpeta vacía o la que ya contiene PecoFence.
-pt_BR.InvalidDestination=Esta pasta já tem outros arquivos. Escolha uma pasta vazia ou a que já contém o PecoFence.
-ru.InvalidDestination=В этой папке уже есть другие файлы. Выберите пустую папку или ту, где уже лежит PecoFence.
-en.NewerVersion=A newer version of PecoFence is already installed. Uninstall it first to install this older version. Your settings and fences are kept.
-zh_CN.NewerVersion=已经装了更新的 PecoFence。要装这个旧版本，请先卸载。设置和栅栏都会保留。
-zh_TW.NewerVersion=已經安裝了較新的 PecoFence。要安裝這個舊版本，請先解除安裝。設定和圍欄都會保留。
-ja.NewerVersion=新しいバージョンの PecoFence がインストールされています。この古いバージョンを入れるには、先にアンインストールしてください。設定とフェンスは残ります。
-ko.NewerVersion=더 최신 버전의 PecoFence가 설치되어 있습니다. 이 이전 버전을 설치하려면 먼저 제거하세요. 설정과 펜스는 그대로 남습니다.
-de.NewerVersion=Eine neuere Version von PecoFence ist bereits installiert. Um diese ältere Version zu installieren, deinstalliere sie zuerst. Deine Einstellungen und Bereiche bleiben erhalten.
-fr.NewerVersion=Une version plus récente de PecoFence est déjà installée. Pour installer cette version plus ancienne, désinstallez-la d'abord. Vos réglages et vos groupes sont conservés.
-es.NewerVersion=Ya hay una versión más reciente de PecoFence instalada. Para instalar esta versión anterior, desinstálala primero. Tus ajustes y grupos se conservan.
-pt_BR.NewerVersion=Uma versão mais recente do PecoFence já está instalada. Para instalar esta versão anterior, desinstale-a primeiro. Suas configurações e grupos são mantidos.
-ru.NewerVersion=Уже установлена более новая версия PecoFence. Чтобы установить старую версию, сначала удалите новую. Настройки и области сохранятся.
+en.AlreadyInstalled=Nodra is already installed in %1. To install it in another folder, uninstall it first.
+zh_CN.AlreadyInstalled=Nodra 已经装在 %1。想换个位置，请先卸载。
+zh_TW.AlreadyInstalled=Nodra 已經安裝在 %1。想換個位置，請先解除安裝。
+ja.AlreadyInstalled=Nodra はすでに %1 にインストールされています。別のフォルダーに入れるには、先にアンインストールしてください。
+ko.AlreadyInstalled=Nodra가 이미 %1에 설치되어 있습니다. 다른 폴더에 설치하려면 먼저 제거하세요.
+de.AlreadyInstalled=Nodra ist bereits in %1 installiert. Um es in einen anderen Ordner zu installieren, deinstalliere es zuerst.
+fr.AlreadyInstalled=Nodra est déjà installé dans %1. Pour l'installer dans un autre dossier, désinstallez-le d'abord.
+es.AlreadyInstalled=Nodra ya está instalado en %1. Para instalarlo en otra carpeta, desinstálalo primero.
+pt_BR.AlreadyInstalled=O Nodra já está instalado em %1. Para instalá-lo em outra pasta, desinstale-o primeiro.
+ru.AlreadyInstalled=Nodra уже установлен в %1. Чтобы установить его в другую папку, сначала удалите его.
+en.InvalidDestination=This folder already contains other files. Choose an empty folder, or the folder that already contains Nodra.
+zh_CN.InvalidDestination=这个文件夹里已经有别的文件了。请选一个空文件夹，或者原来放 Nodra 的文件夹。
+zh_TW.InvalidDestination=這個資料夾裡已經有其他檔案。請選一個空資料夾，或原本放 Nodra 的資料夾。
+ja.InvalidDestination=このフォルダーには別のファイルがあります。空のフォルダーか、Nodra が入っているフォルダーを選んでください。
+ko.InvalidDestination=이 폴더에는 이미 다른 파일이 있습니다. 빈 폴더나 Nodra가 들어 있는 폴더를 선택하세요.
+de.InvalidDestination=Dieser Ordner enthält bereits andere Dateien. Wähle einen leeren Ordner oder den Ordner, in dem Nodra schon liegt.
+fr.InvalidDestination=Ce dossier contient déjà d'autres fichiers. Choisissez un dossier vide ou celui qui contient déjà Nodra.
+es.InvalidDestination=Esta carpeta ya tiene otros archivos. Elige una carpeta vacía o la que ya contiene Nodra.
+pt_BR.InvalidDestination=Esta pasta já tem outros arquivos. Escolha uma pasta vazia ou a que já contém o Nodra.
+ru.InvalidDestination=В этой папке уже есть другие файлы. Выберите пустую папку или ту, где уже лежит Nodra.
+en.NewerVersion=A newer version of Nodra is already installed. Uninstall it first to install this older version. Your settings and fences are kept.
+zh_CN.NewerVersion=已经装了更新的 Nodra。要装这个旧版本，请先卸载。设置和栅栏都会保留。
+zh_TW.NewerVersion=已經安裝了較新的 Nodra。要安裝這個舊版本，請先解除安裝。設定和圍欄都會保留。
+ja.NewerVersion=新しいバージョンの Nodra がインストールされています。この古いバージョンを入れるには、先にアンインストールしてください。設定とフェンスは残ります。
+ko.NewerVersion=더 최신 버전의 Nodra가 설치되어 있습니다. 이 이전 버전을 설치하려면 먼저 제거하세요. 설정과 펜스는 그대로 남습니다.
+de.NewerVersion=Eine neuere Version von Nodra ist bereits installiert. Um diese ältere Version zu installieren, deinstalliere sie zuerst. Deine Einstellungen und Bereiche bleiben erhalten.
+fr.NewerVersion=Une version plus récente de Nodra est déjà installée. Pour installer cette version plus ancienne, désinstallez-la d'abord. Vos réglages et vos groupes sont conservés.
+es.NewerVersion=Ya hay una versión más reciente de Nodra instalada. Para instalar esta versión anterior, desinstálala primero. Tus ajustes y grupos se conservan.
+pt_BR.NewerVersion=Uma versão mais recente do Nodra já está instalada. Para instalar esta versão anterior, desinstale-a primeiro. Suas configurações e grupos são mantidos.
+ru.NewerVersion=Уже установлена более новая версия Nodra. Чтобы установить старую версию, сначала удалите новую. Настройки и области сохранятся.
 
 [Code]
 const
@@ -138,7 +138,7 @@ function WaitForSingleObject(Handle: THandle; Milliseconds: DWORD): DWORD;
 function CloseHandle(Handle: THandle): BOOL;
   external 'CloseHandle@kernel32.dll stdcall';
 
-{ /UPDATE=<pid>,<pid>...: started by PecoFence's updater, which exits right away. Wait, 30 s
+{ /UPDATE=<pid>,<pid>...: started by Nodra's updater, which exits right away. Wait, 30 s
   at most in all, until it, its watchdogs and its instance lock are gone, so the AppMutex
   check that follows passes and no file is in use. Every pid is opened first, so one that
   exits early cannot be reused by another process meanwhile. }
@@ -169,7 +169,7 @@ begin
         if WaitForSingleObject(Processes[I], 0) <> 0 then
           Waiting := True;
       if not Waiting or (Round = 300) then begin
-        Log(Format('Update: waited %d ms for PecoFence to exit', [Round * 100]));
+        Log(Format('Update: waited %d ms for Nodra to exit', [Round * 100]));
         Break;
       end;
       Sleep(100);
@@ -211,7 +211,7 @@ begin
 #endif
 end;
 
-{ An update that failed or was cancelled must not leave the user without PecoFence (unless it
+{ An update that failed or was cancelled must not leave the user without Nodra (unless it
   never exited: then it is still running). }
 procedure DeinitializeSetup;
 var
@@ -294,5 +294,5 @@ begin
     RemoveOwnedStartupValue('{#LegacyRunName}');
   end;
   if CurUninstallStep = usDone then
-    Log('PecoFence uninstall cleanup completed');
+    Log('Nodra uninstall cleanup completed');
 end;

@@ -110,8 +110,8 @@ impl App {
         tracing::info!("previous run crashed; offering to send feedback");
         if let Some(t) = &self.tray {
             t.show_info(
-                "PecoFence",
-                pecofence_core::i18n::text("PecoFence 上次意外关闭了。点击这里报告问题。"),
+                "Nodra",
+                pecofence_core::i18n::text("Nodra 上次意外关闭了。点击这里报告问题。"),
                 true,
             );
             self.feedback.crash_offer_pending = true;
@@ -245,7 +245,7 @@ impl App {
             self.state.storage_kind()
         );
         let system = serde_json::json!({
-            "app": format!("PecoFence {} ({install})", env!("CARGO_PKG_VERSION")),
+            "app": format!("Nodra {} ({install})", env!("CARGO_PKG_VERSION")),
             "windows": format!("build {}", pecofence_platform::desktop::os_build()),
             "displays": fact(displays.join(", ")),
             "settings": fact(behavior),

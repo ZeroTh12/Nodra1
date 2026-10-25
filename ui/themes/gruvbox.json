@@ -1,0 +1,34 @@
+{
+  "base": "fluent",
+  "blur": 30,
+  "chroma": 0.85,
+  "cornerRadius": 14,
+  "shadowOpacity": 0.3,
+  "accent": "#FABD2F",
+  "light": {
+    "tint": "#FBF1C7CC",
+    "luminosity": 0.55,
+    "glassLayerFill": "#EBDBB255",
+    "textPrimary": "#3C3836",
+    "textSecondary": "#504945",
+    "textTertiary": "#928374",
+    "stroke": "#07667838",
+    "tabActiveFill": "#D5C4A1D9",
+    "subtleHover": "#C8B89380",
+    "selectionFill": "#B5761435",
+    "selectionStroke": "#B5761480"
+  },
+  "dark": {
+    "tint": "#282828C6",
+    "luminosity": 0.48,
+    "glassLayerFill": "#3C383655",
+    "textPrimary": "#EBDBB2",
+    "textSecondary": "#D5C4A1",
+    "textTertiary": "#A89984",
+    "stroke": "#8EC07C38",
+    "tabActiveFill": "#504945D9",
+    "subtleHover": "#50494599",
+    "selectionFill": "#FABD2F42",
+    "selectionStroke": "#FABD2F9C"
+  }
+}

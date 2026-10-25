@@ -4,7 +4,7 @@
 use super::*;
 
 /// How to write a theme file (Settings › 常规 › 自定义主题).
-const THEME_GUIDE_URL: &str = "https://github.com/DayuanJiang/PecoFence/blob/main/docs/THEMES.md";
+const THEME_GUIDE_URL: &str = "https://github.com/OWNER/Nodra/blob/main/docs/THEMES.md";
 
 /// Largest snapping gap honoured, in DIPs; `snapping.gapPx` is clamped to `0..=` this.
 pub(super) const MAX_SNAP_GAP_DIP: i32 = 64;

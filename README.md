@@ -1,18 +1,19 @@
 https://github.com/user-attachments/assets/c827f059-cfd7-4f6a-bed3-8b00411a7220
 
 > [!NOTE]
-> **This is a community build** · 这是一个基于官方 PecoFence 的社区定制版
+> **Nodra** · 基于 [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) 的社区定制版
 >
 > 基于 [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) v0.2.3(含 main 分支未发布改动),在本仓库基础上做了以下增强:
 >
-> 1. **`selection.clearOnLeave`** — 鼠标离开围栏时自动清除图标选中,误点不再留下高亮(`pecofence-cli settings set selection.clearOnLeave true` 开启);
-> 2. **卡死自愈** — watchdog 每 20 秒探测主程序,连续两次无响应即结束并自动重启,把"未响应崩溃"变成几秒钟的闪断(关机/注销不重启,快速崩溃循环不重复拉起);
-> 3. **7 套新示例主题** — 墨玉、曜石、暮霞、宣纸、深海、青柠、纯白,加上原有 3 套共 10 套。
+> 1. **`selection.clearOnLeave`** — 鼠标离开围栏时自动清除图标选中,误点不再留下高亮;
+> 2. **卡死自愈** — watchdog 每 20 秒探测主程序,连续两次无响应即结束并自动重启;
+> 3. **10 套全新主题** — 取自 GitHub 最受欢迎的配色:摩卡拿铁 (Catppuccin)、东京之夜 (Tokyo Night)、北欧极光 (Nord)、德古拉 (Dracula)、玫瑰松林 (Rosé Pine)、常青之森 (Everforest)、月之暗面 (One Dark)、熔金暖石 (Gruvbox)、神奈冲浪 (Kanagawa)、午夜代码 (GitHub Dark);
+> 4. **更名 Nodra** — 全新图标;关于页与反馈表单显示联系邮箱 yz13133916714@163.com;Star / 反馈 / 更新检查指向本仓库。
 >
-> 安装包与便携版在 [Releases](../../releases) 下载。上游的所有功能、CLI、文档保持不变;更新检查仍指向官方仓库。
+> 安装包与便携版在 [Releases](../../releases) 下载。上游的所有功能、CLI、文档保持不变。
 > 遵循 Apache-2.0 许可证分发,上游版权与许可证文件完整保留。
 >
-> *A community build of [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) v0.2.3 with three additions: a `selection.clearOnLeave` setting (hover keeps the selection, leaving the fence clears it), a watchdog that detects a hung instance and restarts it, and seven more example themes. Installers are on the [Releases](../../releases) page. Everything else, including the CLI and docs, is unchanged from upstream; Apache-2.0, all rights and license files of the upstream project preserved.*
+> *A community build of [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) v0.2.3, renamed **Nodra**: a hover-clears-selection setting, a self-healing watchdog, ten new themes from GitHub's favourite palettes (Catppuccin, Tokyo Night, Nord, Dracula, Rosé Pine, Everforest, One Dark, Gruvbox, Kanagawa, GitHub Dark), a new icon, and a contact address in Settings › 关于. Installers are on the [Releases](../../releases) page. Apache-2.0, all rights and license files of the upstream project preserved.*
 
 <p align="center">
   <strong>A free, open-source Stardock Fences alternative for Windows 11.</strong><br>
@@ -21,7 +22,7 @@ https://github.com/user-attachments/assets/c827f059-cfd7-4f6a-bed3-8b00411a7220
 
 <p align="center">
   <a href="https://pecofence.jiang.jp/"><strong>Website</strong></a>
-  &nbsp;·&nbsp; <a href="#get-pecofence"><strong>Get PecoFence →</strong></a>
+  &nbsp;·&nbsp; <a href="#get-nodra"><strong>Get Nodra →</strong></a>
   &nbsp;·&nbsp; <a href="#your-desktop-configured-by-your-ai"><strong>AI + CLI</strong></a>
   &nbsp;·&nbsp; <a href="#see-it-in-action">See it in action</a>
   &nbsp;·&nbsp; <a href="docs/README.md">Documentation</a>
@@ -48,7 +49,7 @@ https://github.com/user-attachments/assets/c827f059-cfd7-4f6a-bed3-8b00411a7220
 
 **Built-in CLI. Ready for your AI agent.**
 
-Tell your AI agent how you want your desktop to work. The bundled `pecofence-cli` lets Claude Code, Codex and Cursor read your current setup and apply changes directly in PecoFence.
+Tell your AI agent how you want your desktop to work. The bundled `pecofence-cli` lets Claude Code, Codex and Cursor read your current setup and apply changes directly in Nodra.
 
 - **Configure it in your own words.** Change themes, transparency, icon sizes and global settings, or adjust every fence at once.
 - **Organize once. Keep it organized.** Create project fences, arrange icons and add rules that sort new files automatically.
@@ -56,7 +57,7 @@ Tell your AI agent how you want your desktop to work. The bundled `pecofence-cli
 
 **Try it with your AI agent**
 
-Open PecoFence, then paste this request into your AI coding agent:
+Open Nodra, then paste this request into your AI coding agent:
 
 > Use pecofence-cli to configure my desktop. First read pecofence-cli skill and pecofence-cli describe, then inspect my current settings and fences. Back up my configuration before changes. Switch to dark mode and make all fences more transparent.
 
@@ -86,7 +87,7 @@ Built for agents and scripts: `describe` exposes the command catalog and JSON Sc
 ## Give everything a place
 
 <p align="center">
-  <img src="docs/assets/hero-en.png" alt="PecoFence — Project folders, a PDF and original design studies in Liquid Glass fences." width="1280">
+  <img src="docs/assets/hero-en.png" alt="Nodra — Project folders, a PDF and original design studies in Liquid Glass fences." width="1280">
 </p>
 
 ## See it in action
@@ -125,15 +126,15 @@ initiate work like they do in File Explorer.
 
 [Explore the complete feature list →](docs/FEATURES.md)
 
-## Get PecoFence
+## Get Nodra
 
 <a href="https://apps.microsoft.com/detail/9MV6WG3XNWSX?mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft Store" width="200"></a>
 
 The Microsoft Store edition is signed by Microsoft, updates automatically and never shows a SmartScreen prompt. The same app also comes as:
 
 - **Portable ZIP**: download `pecofence-v<version>-x64-portable.zip` from this repository's **Releases** page, extract the **whole ZIP** into a folder and run `pecofence.exe`.
-- **Installer**: `pecofence-v<version>-x64-setup.exe` on the same page installs PecoFence for your Windows user, with a Start menu entry and an uninstaller.
-- **winget**: `winget install DayuanJiang.PecoFence` installs the portable build and skips the SmartScreen prompt.
+- **Installer**: `nodra-v<version>-x64-setup.exe` on the same page installs Nodra for your Windows user, with a Start menu entry and an uninstaller.
+- **winget**: `winget install DayuanJiang.PecoFence` installs the *upstream* PecoFence; this build lives on this repository's [Releases](../../releases) page.
 
 <details>
 <summary><strong>Requirements, configuration and a few useful notes</strong></summary>

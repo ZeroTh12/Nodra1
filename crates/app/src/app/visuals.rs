@@ -68,44 +68,44 @@ pub(super) fn load_custom_theme(
 fn example_themes(language: pecofence_core::i18n::Language) -> [(&'static str, &'static str); 10] {
     [
         (
-            pecofence_core::i18n::text_in(language, "磨砂玻璃"),
-            include_str!("../../../../ui/themes/frosted-glass.json"),
+            pecofence_core::i18n::text_in(language, "摩卡拿铁"),
+            include_str!("../../../../ui/themes/catppuccin-mocha.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "暖色"),
-            include_str!("../../../../ui/themes/warm.json"),
+            pecofence_core::i18n::text_in(language, "东京之夜"),
+            include_str!("../../../../ui/themes/tokyo-night.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "大圆角"),
-            include_str!("../../../../ui/themes/rounded.json"),
+            pecofence_core::i18n::text_in(language, "北欧极光"),
+            include_str!("../../../../ui/themes/nord.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "墨玉"),
-            include_str!("../../../../ui/themes/ink-jade.json"),
+            pecofence_core::i18n::text_in(language, "德古拉"),
+            include_str!("../../../../ui/themes/dracula.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "曜石"),
-            include_str!("../../../../ui/themes/obsidian.json"),
+            pecofence_core::i18n::text_in(language, "玫瑰松林"),
+            include_str!("../../../../ui/themes/rose-pine.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "暮霞"),
-            include_str!("../../../../ui/themes/dusk-glow.json"),
+            pecofence_core::i18n::text_in(language, "常青之森"),
+            include_str!("../../../../ui/themes/everforest.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "宣纸"),
-            include_str!("../../../../ui/themes/rice-paper.json"),
+            pecofence_core::i18n::text_in(language, "月之暗面"),
+            include_str!("../../../../ui/themes/one-dark.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "深海"),
-            include_str!("../../../../ui/themes/deep-sea.json"),
+            pecofence_core::i18n::text_in(language, "熔金暖石"),
+            include_str!("../../../../ui/themes/gruvbox.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "青柠"),
-            include_str!("../../../../ui/themes/lime-soda.json"),
+            pecofence_core::i18n::text_in(language, "神奈冲浪"),
+            include_str!("../../../../ui/themes/kanagawa.json"),
         ),
         (
-            pecofence_core::i18n::text_in(language, "纯白"),
-            include_str!("../../../../ui/themes/pure-white.json"),
+            pecofence_core::i18n::text_in(language, "午夜代码"),
+            include_str!("../../../../ui/themes/github-dark.json"),
         ),
     ]
 }
@@ -1566,7 +1566,7 @@ mod example_theme_tests {
             let mut names: Vec<_> = themes.iter().map(|(n, _)| *n).collect();
             names.sort();
             names.dedup();
-            assert_eq!(names.len(), 3, "{language:?}");
+            assert_eq!(names.len(), 10, "{language:?}");
         }
     }
 }

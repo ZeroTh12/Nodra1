@@ -4,7 +4,9 @@
 
 use serde::Deserialize;
 
-pub const REPOSITORY: &str = "DayuanJiang/PecoFence";
+// The Nodra community build's own repository; OWNER is replaced with the GitHub account
+// name when the fork is published.
+pub const REPOSITORY: &str = "OWNER/Nodra";
 
 /// GitHub's newest published release; drafts and prereleases are never "latest".
 pub fn latest_release_url() -> String {

@@ -185,12 +185,6 @@ fn rc_source(ico: &str, manifest: Option<&str>) -> String {
     let (major, minor, patch) = (ver("MAJOR"), ver("MINOR"), ver("PATCH"));
     let version = env::var("CARGO_PKG_VERSION").unwrap_or_default();
     let name = env::var("CARGO_PKG_NAME").unwrap_or_default();
-    let description = env::var("CARGO_PKG_DESCRIPTION").unwrap_or_default();
-    let description = if description.is_empty() {
-        name.clone()
-    } else {
-        description
-    };
     // rc string literals: quotes must be doubled.
     let esc = |s: &str| s.replace('"', "\"\"");
     let ico = esc(ico);
@@ -210,13 +204,13 @@ BEGIN
   BEGIN
     BLOCK "040904b0"
     BEGIN
-      VALUE "CompanyName", "Dayuan Jiang"
-      VALUE "FileDescription", "{description}"
+      VALUE "CompanyName", "Nodra Project"
+      VALUE "FileDescription", "Nodra"
       VALUE "FileVersion", "{version}"
       VALUE "InternalName", "{name}"
       VALUE "LegalCopyright", "Copyright (c) Dayuan Jiang. Licensed under the Apache License 2.0."
       VALUE "OriginalFilename", "{name}.exe"
-      VALUE "ProductName", "PecoFence"
+      VALUE "ProductName", "Nodra"
       VALUE "ProductVersion", "{version}"
     END
   END
@@ -226,7 +220,6 @@ BEGIN
   END
 END
 "#,
-        description = esc(&description),
         name = esc(&name),
         version = esc(&version),
     )
