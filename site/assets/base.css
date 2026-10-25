@@ -1,0 +1,435 @@
+/* Shared by the home page and the manual: tokens, header, mobile menu and footer. */
+:root {
+    color-scheme: light;
+    --ink: #19243a;
+    --ink-soft: #566177;
+    --ink-mute: #667188;
+    --accent: #4768de;
+    --accent-dark: #3452bf;
+    --surface: #f6f7fb;
+    --edge: #dfe4ed;
+    --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Yu Gothic UI", "Malgun Gothic", "Microsoft YaHei UI", sans-serif;
+    --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Yu Gothic UI", "Malgun Gothic", "Microsoft YaHei UI", sans-serif
+}
+
+* {
+    box-sizing: border-box
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 104px
+}
+
+body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--surface);
+    font: 400 16px/1.65 var(--font);
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word
+}
+
+a {
+    color: var(--accent);
+    text-underline-offset: 5px
+}
+
+a:hover {
+    color: var(--accent-dark)
+}
+
+button,
+select {
+    font: inherit
+}
+
+button {
+    cursor: pointer
+}
+
+button,
+a,
+select {
+    -webkit-tap-highlight-color: transparent
+}
+
+[hidden] {
+    display: none !important
+}
+
+:focus-visible {
+    outline: 3px solid #6489fa;
+    outline-offset: 5px;
+    border-radius: 4px
+}
+
+::selection {
+    background: #c9d7fc;
+    color: #18213a
+}
+
+.container {
+    width: min(1240px, calc(100% - 96px));
+    margin-inline: auto
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round
+}
+
+.svg-sprite {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap
+}
+
+.skip-link {
+    position: fixed;
+    top: -100px;
+    left: 16px;
+    z-index: 100;
+    padding: 12px 20px;
+    color: white;
+    background: var(--accent);
+    border-radius: 8px
+}
+
+.skip-link:focus {
+    top: 12px;
+    color: white
+}
+
+/* Navigation */
+.masthead {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #f6f7fbef;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid #19243a09
+}
+
+.header-inner {
+    min-height: 84px;
+    display: flex;
+    align-items: center;
+    gap: 32px
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    color: var(--ink);
+    text-decoration: none;
+    font: 700 23px/1 var(--font-display);
+    letter-spacing: -.8px;
+    flex-shrink: 0
+}
+
+.brand:hover {
+    color: var(--ink)
+}
+
+.brand-dot {
+    color: var(--accent)
+}
+
+.primary-nav {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-left: auto
+}
+
+.primary-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 44px;
+    color: var(--ink-soft);
+    font-size: 13px;
+    text-decoration: none
+}
+
+.primary-nav a:hover {
+    color: var(--accent)
+}
+
+.primary-nav a[aria-current="page"] {
+    color: var(--accent-dark)
+}
+
+.primary-nav .icon {
+    width: 16px;
+    height: 16px
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 22px
+}
+
+.lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-soft)
+}
+
+.lang .icon {
+    width: 17px;
+    height: 17px
+}
+
+.lang select {
+    appearance: none;
+    max-width: 118px;
+    height: 44px;
+    padding: 0 17px 0 0;
+    color: inherit;
+    border: 0;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='m1 1 4 4 4-4' fill='none' stroke='%2369758a' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right center
+}
+
+.lang select option {
+    color: var(--ink);
+    background: white
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 54px;
+    padding: 15px 23px;
+    border: 1px solid var(--edge);
+    border-radius: 10px;
+    color: var(--ink);
+    background: white;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none;
+    transition: background .2s, box-shadow .2s, transform .2s
+}
+
+.button:hover {
+    color: var(--ink);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px #203f7615
+}
+
+.button.primary {
+    color: white;
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: inset 0 1px #ffffff35, 0 7px 24px #213caf20
+}
+
+.button.primary:hover {
+    background: var(--accent-dark);
+    color: white
+}
+
+.button-small {
+    min-height: 40px;
+    padding: 10px 17px;
+    font-size: 12px;
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink)
+}
+
+.button-small:hover {
+    background: #2c3e60;
+    color: white
+}
+
+.button-small .icon {
+    width: 15px;
+    height: 15px
+}
+
+.small {
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height: 1.8
+}
+
+.footer {
+    padding-block: 30px;
+    border-top: 1px solid var(--edge)
+}
+
+.footer-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px
+}
+
+.footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px 23px;
+    margin: 0;
+    padding: 0;
+    list-style: none
+}
+
+.footer-links a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 12px
+}
+
+.footer-links a:hover {
+    color: var(--accent)
+}
+
+.footer>.small {
+    margin: 22px 0 0;
+    font-size: 11px
+}
+
+@media(max-width:1100px) {
+    .container {
+        width: calc(100% - 64px)
+    }
+
+    .primary-nav {
+        gap: 18px
+    }
+
+    .header-inner {
+        gap: 20px
+    }
+
+    .header-actions {
+        gap: 15px
+    }
+}
+
+/* Narrower screens keep the manual link; GitHub stays in the footer ("Source code"). */
+@media(max-width:840px) {
+    .primary-nav .nav-github {
+        display: none
+    }
+
+    .footer-top {
+        align-items: flex-start
+    }
+}
+
+@media(max-width:620px) {
+    html {
+        scroll-padding-top: 85px
+    }
+
+    .container {
+        width: calc(100% - 40px)
+    }
+
+    .header-inner {
+        min-height: 70px;
+        gap: 12px
+    }
+
+    .brand {
+        font-size: 21px;
+        gap: 8px
+    }
+
+    .brand>img {
+        width: 26px;
+        height: 26px
+    }
+
+    .header-actions {
+        gap: 12px
+    }
+
+    .lang>.icon {
+        display: none
+    }
+
+    .lang select {
+        max-width: 84px;
+        font-size: 11px
+    }
+
+    .header-actions .button {
+        font-size: 11px;
+        min-height: 36px;
+        padding: 9px 12px
+    }
+
+    .header-actions .button .icon {
+        display: none
+    }
+
+    .footer-top {
+        flex-direction: column;
+        gap: 25px
+    }
+
+    .footer-links {
+        justify-content: flex-start;
+        gap: 12px 20px
+    }
+}
+
+/* Phones: logo, manual link and language; the hero has the download buttons. */
+@media(max-width:480px) {
+    .header-actions .button {
+        display: none
+    }
+}
+
+@media(max-width:380px) {
+    .container {
+        width: calc(100% - 32px)
+    }
+
+    .lang select {
+        max-width: 72px
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    html {
+        scroll-behavior: auto
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important
+    }
+}

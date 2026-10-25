@@ -1,0 +1,24 @@
+[package]
+name = "pecofence-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "PecoFence command-line control for terminals and coding agents."
+build = "build.rs"
+
+[[bin]]
+name = "pecofence-cli"
+path = "src/main.rs"
+
+[dependencies]
+pecofence-core = { path = "../core" }
+pecofence-ipc = { path = "../ipc", features = ["describe"] }
+# The pipe name with the user's SID, computed as the app does (client.rs).
+pecofence-platform = { path = "../platform" }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

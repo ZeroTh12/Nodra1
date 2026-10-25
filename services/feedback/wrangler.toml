@@ -1,0 +1,20 @@
+# PecoFence feedback service: `npx wrangler deploy` from this folder. The token is a secret:
+# `npx wrangler secret put GITHUB_TOKEN`. No observability / logpush: request metadata (IP)
+# must not be kept.
+name = "pecofence-feedback"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = false
+routes = [{ pattern = "api.pecofence.jiang.jp", custom_domain = true }]
+
+[vars]
+GITHUB_REPO = "DayuanJiang/PecoFence-feedback"
+
+# Three reports per minute per client IP (per Cloudflare location).
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "5401"
+
+  [ratelimits.simple]
+  limit = 3
+  period = 60

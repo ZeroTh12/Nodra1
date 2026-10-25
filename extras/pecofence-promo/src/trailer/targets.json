@@ -1,0 +1,352 @@
+{
+ "overview": {
+  "fences": {
+   "Projects": {
+    "x": 730,
+    "y": 692,
+    "w": 679,
+    "h": 590
+   },
+   "Inspiration": {
+    "x": 1480,
+    "y": 752,
+    "w": 880,
+    "h": 715
+   },
+   "Today": {
+    "x": 2430,
+    "y": 907,
+    "w": 675,
+    "h": 355
+   }
+  },
+  "items": [
+   {
+    "fence": "Projects",
+    "name": "Archive",
+    "icon": {
+     "x": 762,
+     "y": 796,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Projects",
+    "name": "Brand",
+    "icon": {
+     "x": 954,
+     "y": 796,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Projects",
+    "name": "Campaign",
+    "icon": {
+     "x": 1146,
+     "y": 796,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Projects",
+    "name": "Creative brief.pdf",
+    "icon": {
+     "x": 762,
+     "y": 1020,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Projects",
+    "name": "Launch checklist.md",
+    "icon": {
+     "x": 954,
+     "y": 1020,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Projects",
+    "name": "Website",
+    "icon": {
+     "x": 1146,
+     "y": 1020,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Inspiration",
+    "name": "Atelier study.png",
+    "icon": {
+     "x": 1512,
+     "y": 856,
+     "w": 192,
+     "h": 192
+    }
+   },
+   {
+    "fence": "Inspiration",
+    "name": "Form study.png",
+    "icon": {
+     "x": 1768,
+     "y": 856,
+     "w": 192,
+     "h": 192
+    }
+   },
+   {
+    "fence": "Inspiration",
+    "name": "Sol study.png",
+    "icon": {
+     "x": 2024,
+     "y": 856,
+     "w": 192,
+     "h": 192
+    }
+   },
+   {
+    "fence": "Inspiration",
+    "name": "Still study.png",
+    "icon": {
+     "x": 1512,
+     "y": 1144,
+     "w": 192,
+     "h": 192
+    }
+   },
+   {
+    "fence": "Inspiration",
+    "name": "Terra study.png",
+    "icon": {
+     "x": 1768,
+     "y": 1144,
+     "w": 192,
+     "h": 192
+    }
+   },
+   {
+    "fence": "Inspiration",
+    "name": "Tide study.png",
+    "icon": {
+     "x": 2024,
+     "y": 1144,
+     "w": 192,
+     "h": 192
+    }
+   },
+   {
+    "fence": "Today",
+    "name": "Creative brief.pdf",
+    "icon": {
+     "x": 2462,
+     "y": 1011,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Today",
+    "name": "Launch checklist.md",
+    "icon": {
+     "x": 2654,
+     "y": 1011,
+     "w": 128,
+     "h": 128
+    }
+   },
+   {
+    "fence": "Today",
+    "name": "Meeting notes.txt",
+    "icon": {
+     "x": 2846,
+     "y": 1011,
+     "w": 128,
+     "h": 128
+    }
+   }
+  ]
+ },
+ "auto": {
+  "fences": {
+   "Images": {
+    "x": 840,
+    "y": 780,
+    "w": 1260,
+    "h": 640
+   },
+   "Documents": {
+    "x": 2200,
+    "y": 800,
+    "w": 800,
+    "h": 600
+   }
+  },
+  "arrivals": {
+   "Form study.png": {
+    "x": 872,
+    "y": 884,
+    "w": 192,
+    "h": 192
+   },
+   "Launch checklist.md": {
+    "x": 2424,
+    "y": 904,
+    "w": 128,
+    "h": 128
+   },
+   "Sol study.png": {
+    "x": 1128,
+    "y": 884,
+    "w": 192,
+    "h": 192
+   },
+   "Q3 report.pdf": {
+    "x": 2808,
+    "y": 904,
+    "w": 128,
+    "h": 128
+   }
+  }
+ },
+ "tabs": {
+  "before": {
+   "Projects": {
+    "x": 830,
+    "y": 690,
+    "w": 1060,
+    "h": 800
+   },
+   "Inspiration": {
+    "x": 1950,
+    "y": 690,
+    "w": 1060,
+    "h": 800
+   }
+  },
+  "merged": {
+   "x": 830,
+   "y": 690,
+   "w": 1060,
+   "h": 800
+  },
+  "tabLabels": {
+   "Projects": {
+    "x": 847,
+    "y": 699,
+    "w": 161,
+    "h": 55
+   },
+   "Inspiration": {
+    "x": 1017,
+    "y": 699,
+    "w": 203,
+    "h": 55
+   }
+  }
+ },
+ "ai": {
+  "fences": {
+   "4.0": {
+    "Desktop": {
+     "x": 1760,
+     "y": 470,
+     "w": 799,
+     "h": 778
+    },
+    "Inspiration": {
+     "x": 2590,
+     "y": 470,
+     "w": 599,
+     "h": 554
+    }
+   },
+   "7.0": {
+    "Desktop": {
+     "x": 1760,
+     "y": 470,
+     "w": 799,
+     "h": 778
+    },
+    "Inspiration": {
+     "x": 2590,
+     "y": 470,
+     "w": 599,
+     "h": 554
+    },
+    "Docs": {
+     "x": 1760,
+     "y": 1200,
+     "w": 800,
+     "h": 330
+    }
+   },
+   "9.5": {
+    "Desktop": {
+     "x": 1760,
+     "y": 470,
+     "w": 800,
+     "h": 554
+    },
+    "Inspiration": {
+     "x": 2590,
+     "y": 470,
+     "w": 599,
+     "h": 554
+    },
+    "Docs": {
+     "x": 1760,
+     "y": 1200,
+     "w": 800,
+     "h": 330
+    }
+   },
+   "12.5": {
+    "Desktop": {
+     "x": 1760,
+     "y": 470,
+     "w": 767,
+     "h": 682
+    },
+    "Inspiration": {
+     "x": 2590,
+     "y": 470,
+     "w": 511,
+     "h": 970
+    },
+    "Docs": {
+     "x": 1760,
+     "y": 1200,
+     "w": 767,
+     "h": 682
+    }
+   },
+   "15.0": {
+    "Desktop": {
+     "x": 1760,
+     "y": 470,
+     "w": 768,
+     "h": 682
+    },
+    "Inspiration": {
+     "x": 2590,
+     "y": 470,
+     "w": 512,
+     "h": 970
+    },
+    "Docs": {
+     "x": 1760,
+     "y": 1200,
+     "w": 768,
+     "h": 682
+    }
+   }
+  }
+ }
+}

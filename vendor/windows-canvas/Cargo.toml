@@ -1,0 +1,42 @@
+[package]
+name = "windows-canvas"
+version = "0.100.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+description = "Windows 2D graphics library (PecoFence vendored copy: adds a text-format locale)"
+repository = "https://github.com/microsoft/windows-rs"
+categories = ["os::windows-apis"]
+readme = "readme.md"
+
+[features]
+default = []
+composition = ["dep:windows-composition", "windows-composition/system"]
+reactor = ["dep:windows-reactor"]
+
+[dependencies.windows-composition]
+version = "0.100.0"
+optional = true
+default-features = false
+
+[dependencies.windows-core]
+version = "0.100.0"
+default-features = false
+
+[dependencies.windows-numerics]
+version = "0.100.0"
+default-features = false
+
+[dependencies.windows-reactor]
+version = "0.100.0"
+optional = true
+default-features = false
+
+[dependencies.windows-window]
+version = "0.100.0"
+default-features = false
+
+[package.metadata.docs.rs]
+default-target = "x86_64-pc-windows-msvc"
+targets = []
+features = ["composition", "reactor"]

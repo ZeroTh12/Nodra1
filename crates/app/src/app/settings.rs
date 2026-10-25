@@ -1,0 +1,905 @@
+//! Settings host window + page protocol: state JSON, toasts, message handling, config adoption,
+//! import / export / restore, settings diff application.
+
+use super::*;
+
+/// How to write a theme file (Settings › 常规 › 自定义主题).
+const THEME_GUIDE_URL: &str = "https://github.com/DayuanJiang/PecoFence/blob/main/docs/THEMES.md";
+
+/// Largest snapping gap honoured, in DIPs; `snapping.gapPx` is clamped to `0..=` this.
+pub(super) const MAX_SNAP_GAP_DIP: i32 = 64;
+
+/// `snapping.gapPx` as the gap (DIPs) fence windows keep to each other and the work-area edges
+/// while snapping.
+pub(super) fn snap_gap_dip(snapping: &pecofence_core::SnappingSettings) -> i32 {
+    snapping.gap_px.clamp(0, MAX_SNAP_GAP_DIP)
+}
+
+/// A script error on the settings page (`pageError`): its JavaScript error type and position
+/// go to the log as fixed names and numbers; the page never sends the message, which can
+/// quote what the user typed.
+fn log_page_error(v: &serde_json::Value) {
+    const KINDS: &[&str] = &[
+        "Error",
+        "TypeError",
+        "ReferenceError",
+        "RangeError",
+        "SyntaxError",
+        "URIError",
+        "EvalError",
+        "AggregateError",
+    ];
+    let text = |key: &str| v.get(key).and_then(|k| k.as_str()).unwrap_or("");
+    let kind = KINDS
+        .iter()
+        .find(|&&k| k == text("kind"))
+        .copied()
+        .unwrap_or("other");
+    let file = text("file");
+    let script = if file.ends_with("i18n.js") {
+        "i18n.js"
+    } else if file.is_empty() {
+        "none"
+    } else {
+        "settings page"
+    };
+    let number = |key: &str| v.get(key).and_then(|n| n.as_u64()).unwrap_or(0);
+    tracing::warn!(
+        what = kind,
+        at = script,
+        line = number("line"),
+        col = number("col"),
+        "settings page script error"
+    );
+}
+
+/// Where a wholesale configuration came from: names its toast and the undo snapshot.
+#[derive(Clone, Copy)]
+pub(super) enum ConfigSource {
+    Import,
+    Backup,
+}
+
+impl ConfigSource {
+    fn done(self) -> &'static str {
+        match self {
+            Self::Import => pecofence_core::i18n::text("已导入配置"),
+            Self::Backup => pecofence_core::i18n::text("已恢复备份"),
+        }
+    }
+
+    fn before(self) -> &'static str {
+        match self {
+            Self::Import => pecofence_core::i18n::text("导入配置前"),
+            Self::Backup => pecofence_core::i18n::text("恢复备份前"),
+        }
+    }
+}
+
+/// Room for one of the page's automatic "…前" snapshots. Like the CLI's `auto_snapshot_slot`,
+/// it never evicts a snapshot the user saved: a full list loses its oldest automatic one (the
+/// page's or the CLI's) instead, and `false` means none is left to drop, so none is taken.
+/// `protect` (the snapshot about to be restored) always stays. Automatic names saved in another
+/// UI language count as the user's.
+pub(super) fn auto_snapshot_room(
+    snapshots: &mut Vec<pecofence_core::Snapshot>,
+    protect: Option<uuid::Uuid>,
+) -> bool {
+    let auto = [
+        pecofence_core::i18n::text("恢复快照前"),
+        ConfigSource::Import.before(),
+        ConfigSource::Backup.before(),
+    ];
+    if snapshots.len() >= pecofence_core::MAX_SNAPSHOTS
+        && let Some(i) = snapshots.iter().position(|s| {
+            Some(s.id) != protect
+                && (s.name.starts_with(super::ipc::AUTO_SNAPSHOT_PREFIX)
+                    || auto.contains(&s.name.as_str()))
+        })
+    {
+        snapshots.remove(i);
+    }
+    snapshots.len() < pecofence_core::MAX_SNAPSHOTS
+}
+
+fn snapshot_limit_text() -> String {
+    pecofence_core::i18n::format(
+        "快照已达上限（{0} 个），未保存新快照。请删除不需要的快照。",
+        &[pecofence_core::MAX_SNAPSHOTS.to_string()],
+    )
+}
+
+impl App {
+    /// Replaces the configuration wholesale (import / backup) and rebuilds everything.
+    pub(super) fn adopt_config(&mut self, cfg: pecofence_core::Config, source: ConfigSource) {
+        self.end_peek_now();
+        let old_settings = self.state.config.settings.clone();
+        self.state.replace_config(cfg);
+        if let Some(desk) = shell::user_desktop() {
+            self.state.migrate_desktop_path(&desk);
+        }
+        // What the file (plus the desktop-path migration) wants the settings to be. The Store
+        // edition's startup switch is Windows': a file does not change it (nor open its page).
+        let mut new_settings = self.state.config.settings.clone();
+        if pecofence_platform::process::is_packaged() {
+            new_settings.autostart = old_settings.autostart;
+        }
+        self.sync_desktop_if_available("config adopted");
+        self.relayout_from_state();
+        // The file's portals need enumerating; runtime state of the replaced ones is pruned.
+        self.refresh_portals();
+        // Re-apply the settings through the diff path so the anchor / Run-key side effects
+        // (hide_real_icons, quick_hide.enabled, show_desktop, autostart) and the ctx.behavior
+        // cells update exactly as if the user had changed them on the page.
+        self.state.config.settings = old_settings;
+        self.apply_settings(new_settings);
+        // apply_settings only refreshes on a visual / icon diff; a wholesale swap (per-fence
+        // tint, layouts) needs these regardless.
+        self.sync_peek_hotkey();
+        self.apply_icon_variant();
+        self.refresh_visuals(true);
+        self.state.save_if_dirty();
+        self.push_settings_state();
+        self.settings_toast(source.done());
+    }
+
+    pub(super) fn export_config(&mut self) {
+        let owner = self.settings.as_ref().map(|h| h.hwnd());
+        let name = format!(
+            "pecofence-{}.json",
+            pecofence_core::config_store::today_yyyy_mm_dd()
+        );
+        match pecofence_platform::filedialog::save_json(
+            owner,
+            pecofence_core::i18n::text("导出 PecoFence 配置"),
+            &name,
+        ) {
+            Ok(Some(path)) => {
+                self.state.save_if_dirty();
+                match pecofence_core::ConfigStore::export_to(&self.state.config, &path) {
+                    Ok(()) => self.settings_toast(&pecofence_core::i18n::format(
+                        "已导出到 {0}",
+                        &[format!("{}", path.display())],
+                    )),
+                    Err(e) => self.settings_error(&pecofence_core::i18n::format(
+                        "导出失败：{0}",
+                        &[e.to_string()],
+                    )),
+                }
+            }
+            Ok(None) => {}
+            Err(e) => self.settings_error(&pecofence_core::i18n::format(
+                "无法打开保存对话框：{0}",
+                &[e.to_string()],
+            )),
+        }
+    }
+
+    pub(super) fn import_config(&mut self) {
+        let owner = self.settings.as_ref().map(|h| h.hwnd());
+        match pecofence_platform::filedialog::open_json(
+            owner,
+            pecofence_core::i18n::text("导入 PecoFence 配置"),
+        ) {
+            Ok(Some(path)) => self.restore_from_file(&path, ConfigSource::Import),
+            Ok(None) => {}
+            Err(e) => self.settings_error(&pecofence_core::i18n::format(
+                "无法打开文件对话框：{0}",
+                &[e.to_string()],
+            )),
+        }
+    }
+
+    pub(super) fn restore_from_file(&mut self, path: &std::path::Path, source: ConfigSource) {
+        match pecofence_core::ConfigStore::parse_file(path) {
+            Ok(cfg) => {
+                // Keep a snapshot of what we are replacing so the step can be undone; a list
+                // full of the user's own snapshots has no room for it, so nothing is replaced.
+                if !auto_snapshot_room(&mut self.state.config.snapshots, None) {
+                    self.settings_error(&snapshot_limit_text());
+                    return;
+                }
+                self.state.save_snapshot(source.before());
+                self.adopt_config(cfg, source);
+            }
+            Err(e) => self.settings_error(&pecofence_core::i18n::format(
+                "无法使用此文件：{0}",
+                std::slice::from_ref(&e),
+            )),
+        }
+    }
+
+    pub(super) fn open_settings(&mut self) {
+        self.query_store_startup();
+        if let Some(h) = &self.settings {
+            window::show_normal(h.hwnd());
+            window::bring_to_front(h.hwnd());
+            return;
+        }
+        if self.web_env.is_none() {
+            match WebEnvironment::create() {
+                Ok(env) => self.web_env = Some(env),
+                // WebView2's wait for its callback pumps messages and ends with an error when
+                // it takes a WM_QUIT (the session ends): quit after all.
+                Err(_) if window::quit_posted() => {
+                    window::post_quit(0);
+                    return;
+                }
+                Err(e) => {
+                    tracing::error!(error = %e, "WebView2 environment failed");
+                    if let Some(t) = &self.tray {
+                        t.show_info(
+                            "PecoFence",
+                            pecofence_core::i18n::text("无法创建 WebView2 环境，请确认已安装 Microsoft Edge WebView2 运行时。"),
+                            true,
+                        );
+                    }
+                    return;
+                }
+            }
+        }
+        match SettingsHost::open(
+            &self.settings_class,
+            self.web_env.as_ref().unwrap(),
+            self.theme_mode,
+            self.ctx.theme.borrow().liquid_glass,
+            self.queue.clone(),
+        ) {
+            Ok(mut host) => {
+                // Caption icon: the same drawn fence glyph as the tray, at 16/32 DIP.
+                let scale = monitors::dpi_for_window(host.hwnd()).max(96) as f32 / 96.0;
+                let accent = self.ctx.theme.borrow().accent_rgb8();
+                let dark = self.theme_mode == ThemeMode::Dark;
+                let small = (16.0 * scale).round() as i32;
+                let big = (32.0 * scale).round() as i32;
+                host.set_icons(
+                    (small, tray_icon_image(small, accent, dark)),
+                    (big, tray_icon_image(big, accent, dark)),
+                );
+                self.settings = Some(host);
+            }
+            Err(_) if window::quit_posted() => window::post_quit(0),
+            Err(e) => {
+                tracing::error!(error = %e, "settings window failed");
+                if let Some(t) = &self.tray {
+                    t.show_info(
+                        "PecoFence",
+                        pecofence_core::i18n::text("无法打开设置窗口（WebView2 初始化失败），请检查 Microsoft Edge WebView2 运行时。"),
+                        true,
+                    );
+                }
+            }
+        }
+    }
+
+    pub(super) fn settings_state_json(&self) -> String {
+        let localization = pecofence_core::i18n::ui_payload();
+        let fences: Vec<serde_json::Value> = self
+            .state
+            .fences()
+            .iter()
+            .map(|f| self.fence_options_json(f))
+            .collect();
+        let mem_mb = pecofence_platform::memstats::MemoryStats::current()
+            .map(|m| m.private_working_set as f64 / (1024.0 * 1024.0))
+            .unwrap_or(0.0);
+        let snapshots: Vec<serde_json::Value> = self
+            .state
+            .config
+            .snapshots
+            .iter()
+            .map(|s| {
+                serde_json::json!({
+                    "id": s.id,
+                    "name": s.name,
+                    "ts": s.ts,
+                    "date": pecofence_platform::fileinfo::format_local_datetime(s.ts),
+                    "fenceCount": super::ipc::snapshot_dto(s, &self.state.work_areas).fence_count,
+                })
+            })
+            .collect();
+        let backups: Vec<serde_json::Value> = self
+            .state
+            .backup_files()
+            .iter()
+            .map(|p| {
+                serde_json::json!({
+                    "path": p.to_string_lossy(),
+                    "name": p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default(),
+                })
+            })
+            .collect();
+        let monitors: Vec<serde_json::Value> = self
+            .monitor_labels()
+            .into_iter()
+            .map(|(id, label)| serde_json::json!({ "id": id, "label": label }))
+            .collect();
+        let accent = {
+            let [r, g, b] = self.ctx.theme.borrow().accent_rgb8();
+            format!("#{r:02X}{g:02X}{b:02X}")
+        };
+        serde_json::json!({
+            "type": "state",
+            "locale": localization["locale"],
+            "translations": localization["translations"],
+            "settings": self.state.config.settings,
+            "desktopIconsHidden": pecofence_platform::shell_icons::desktop_icons_hidden(),
+            "rules": self.state.config.rules,
+            "fences": fences,
+            "snapshots": snapshots,
+            "backups": backups,
+            "monitors": monitors,
+            "tintPalette": fence_options::tint_palette_json(),
+            "version": env!("CARGO_PKG_VERSION"),
+            "storeEdition": pecofence_platform::process::is_packaged(),
+            "configPath": self.state.config_path_on_disk().to_string_lossy(),
+            "memoryMb": mem_mb,
+            "itemCount": self.state.workspace_item_count(),
+            "themeMode": if self.theme_mode == ThemeMode::Dark { "dark" } else { "light" },
+            // The style the fences show, which a custom theme's base decides.
+            "styleInUse": if self.ctx.theme.borrow().liquid_glass { "liquidGlass" } else { "fluent" },
+            "customThemes": custom_theme_names(&self.state),
+            "customThemeError": self.custom_theme_error,
+            "accent": accent,
+            "update": self.update_json(),
+            "peekHotkey": self.peek_hotkey_json(),
+        })
+        .to_string()
+    }
+
+    pub(super) fn push_settings_state(&self) {
+        if let Some(h) = &self.settings {
+            h.post_json(&self.settings_state_json());
+        }
+    }
+
+    /// File watcher/navigation updates must not rebuild controls while the user is
+    /// editing a name or has a select popup open.
+    pub(super) fn push_workspace_summary(&self) {
+        if let Some(h) = &self.settings {
+            h.post_json(
+                &serde_json::json!({
+                    "type": "workspaceSummary",
+                    "fenceCount": self.state.fences().len(),
+                    "itemCount": self.state.workspace_item_count(),
+                })
+                .to_string(),
+            );
+        }
+    }
+
+    /// Call after mutating `self.state.config.settings` anywhere other than apply_settings:
+    /// persists the change and keeps an open settings page in sync so its next
+    /// whole-object patchSettings does not revert it.
+    pub(super) fn settings_mutated(&mut self) {
+        self.state.mark_dirty();
+        self.schedule_save();
+        self.push_settings_state();
+    }
+
+    /// Store edition: reads Windows' startup switch for the package on a worker; the result comes
+    /// back through `WM_APP_STARTUP_TASK` to [`Self::finish_store_startup`].
+    pub(super) fn query_store_startup(&self) {
+        if !pecofence_platform::process::is_packaged() {
+            return;
+        }
+        let result = self.store_startup.clone();
+        let control = self.control.hwnd().0 as isize;
+        let _ = std::thread::Builder::new()
+            .name("pecofence-startup-task".into())
+            .spawn(
+                move || match pecofence_platform::store::startup_task_enabled() {
+                    Ok(on) => {
+                        result.store(1 + on as u8, std::sync::atomic::Ordering::Relaxed);
+                        window::post_message(
+                            HWND(control as *mut core::ffi::c_void),
+                            WM_APP_STARTUP_TASK,
+                            0,
+                            0,
+                        );
+                    }
+                    Err(e) => tracing::warn!(error = %e, "reading the startup task failed"),
+                },
+            );
+    }
+
+    /// 「随 Windows 启动」 follows the switch Windows keeps for the Store package.
+    pub(super) fn finish_store_startup(&mut self) {
+        let on = match self
+            .store_startup
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
+            1 => false,
+            2 => true,
+            _ => return,
+        };
+        if self.state.config.settings.autostart != on {
+            tracing::info!(on, "startup switch follows Windows");
+            self.state.config.settings.autostart = on;
+            self.settings_mutated();
+        }
+    }
+
+    pub(super) fn settings_toast(&self, text: &str) {
+        if let Some(h) = &self.settings {
+            h.post_json(&serde_json::json!({ "type": "toast", "text": text }).to_string());
+        }
+    }
+
+    fn settings_error(&self, text: &str) {
+        if let Some(h) = &self.settings {
+            h.post_json(
+                &serde_json::json!({ "type": "toast", "text": text, "error": true }).to_string(),
+            );
+        }
+    }
+
+    pub(super) fn on_settings_message(&mut self, json: &str) {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else {
+            return;
+        };
+        match v.get("type").and_then(|t| t.as_str()) {
+            Some("ready") => {
+                tracing::info!("settings: page ready");
+                if let Some(h) = self.settings.as_mut() {
+                    h.ready = true;
+                }
+                // A reload in the middle of recording a shortcut never says it ended.
+                self.resume_peek_hotkey();
+                self.push_settings_state();
+                // The first `ready` shows the window; a reload's leaves it as the user left it.
+                if let Some(h) = self
+                    .settings
+                    .as_ref()
+                    .filter(|h| !desktop::is_visible(h.hwnd()))
+                {
+                    window::show_normal(h.hwnd());
+                    window::bring_to_front(h.hwnd());
+                }
+                if let Some(fence) = self.settings_focus_fence.take() {
+                    self.post_show_fence(fence);
+                }
+                self.show_pending_feedback();
+            }
+            Some("setFence") => self.on_set_fence(&v),
+            Some("ringFence") => {
+                let host = v
+                    .get("id")
+                    .and_then(|i| i.as_str())
+                    .and_then(|i| uuid::Uuid::parse_str(i).ok())
+                    .map(|id| self.state.host_of(id));
+                self.set_settings_ring(host);
+            }
+            Some("patchSettings") => {
+                let Some(new_settings) = v.get("settings").cloned() else {
+                    return;
+                };
+                match serde_json::from_value::<pecofence_core::Settings>(new_settings) {
+                    Ok(new_settings) => self.apply_settings(new_settings),
+                    Err(e) => tracing::warn!(error = %e, "bad settings from page"),
+                }
+            }
+            Some("setRules") => {
+                if let Some(rules) = v.get("rules").cloned()
+                    && let Ok(rules) = serde_json::from_value::<pecofence_core::RuleSet>(rules)
+                {
+                    self.set_rules(rules);
+                }
+            }
+            Some("action") => match v.get("name").and_then(|n| n.as_str()) {
+                Some("applyRules") => {
+                    let entries = shell::enumerate_desktop();
+                    let moved = self.state.apply_rules_all(&entries);
+                    self.refresh_all();
+                    self.schedule_save();
+                    self.settings_toast(&pecofence_core::i18n::format(
+                        "已按规则整理 {0} 个项目",
+                        &[moved.to_string()],
+                    ));
+                }
+                Some("addTemplate") => {
+                    if let Some(template) = v
+                        .get("template")
+                        .and_then(|t| t.as_str())
+                        .and_then(pecofence_core::rules::Template::parse)
+                    {
+                        self.add_template(template);
+                    }
+                }
+                Some("openConfigFolder") => {
+                    // Explorer opens Documents for a path it cannot see: hand it the real one.
+                    use std::os::windows::process::CommandExt;
+                    let path = self.state.config_path_on_disk();
+                    let mut explorer = std::process::Command::new("explorer.exe");
+                    if path.is_file() {
+                        // Quoted as a whole (what `arg` does once a space appears), the
+                        // `/select` argument opens Documents too.
+                        explorer.raw_arg(format!("/select,\"{}\"", path.display()));
+                    } else {
+                        explorer.arg(path.parent().unwrap_or(&path));
+                    }
+                    let _ = explorer.spawn();
+                }
+                Some("openThemesFolder") => {
+                    let dir = self.state.themes_dir();
+                    if !dir.exists() {
+                        match std::fs::create_dir_all(&dir) {
+                            Ok(()) => write_example_themes(&dir),
+                            Err(e) => {
+                                tracing::warn!(dir = %dir.display(), error = %e, "themes folder not made")
+                            }
+                        }
+                    }
+                    self.sync_theme_watcher();
+                    // The examples were written before the watcher started: list them now.
+                    self.push_settings_state();
+                    // The Store package's copy of %APPDATA%, where Explorer can find it.
+                    let _ = std::process::Command::new("explorer.exe")
+                        .arg(crate::state::canonical_path(dir))
+                        .spawn();
+                }
+                Some("openThemeGuide") => {
+                    let _ = shell::shell_execute(Path::new(THEME_GUIDE_URL), None, None);
+                }
+                Some("saveSnapshot") => {
+                    // A full list refuses a new snapshot (as the CLI does) instead of
+                    // dropping the oldest one.
+                    if self.state.config.snapshots.len() >= pecofence_core::MAX_SNAPSHOTS {
+                        self.settings_error(&snapshot_limit_text());
+                    } else {
+                        let name = v.get("snapshotName").and_then(|n| n.as_str()).unwrap_or("");
+                        self.state.save_snapshot(name);
+                        self.schedule_save();
+                        self.push_settings_state();
+                        self.settings_toast(pecofence_core::i18n::text("已保存快照"));
+                    }
+                }
+                Some("restoreSnapshot") => {
+                    if let Some(id) = v
+                        .get("id")
+                        .and_then(|i| i.as_str())
+                        .and_then(|i| uuid::Uuid::parse_str(i).ok())
+                        && self.state.config.snapshots.iter().any(|s| s.id == id)
+                    {
+                        // Snapshot of the current state first, so "restore" is reversible;
+                        // a list full of the user's own snapshots has no room for it, so
+                        // nothing is restored.
+                        if !auto_snapshot_room(&mut self.state.config.snapshots, Some(id)) {
+                            self.settings_error(&snapshot_limit_text());
+                            return;
+                        }
+                        self.state.restore_snapshot_with_backup(
+                            id,
+                            pecofence_core::i18n::text("恢复快照前"),
+                        );
+                        self.end_peek_now();
+                        self.relayout_from_state();
+                        // Portals restored with the snapshot need enumerating; stale
+                        // runtime state of the replaced ones is pruned on the way.
+                        self.refresh_portals();
+                        self.schedule_save();
+                        self.push_settings_state();
+                        self.settings_toast(pecofence_core::i18n::text("已恢复快照"));
+                    }
+                }
+                Some("deleteSnapshot") => {
+                    if let Some(id) = v
+                        .get("id")
+                        .and_then(|i| i.as_str())
+                        .and_then(|i| uuid::Uuid::parse_str(i).ok())
+                        && self.state.delete_snapshot(id)
+                    {
+                        self.schedule_save();
+                        self.push_settings_state();
+                    }
+                }
+                Some("swapMonitors") => {
+                    let a = v
+                        .get("a")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let b = v
+                        .get("b")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if !a.is_empty() && !b.is_empty() {
+                        self.swap_monitors(&a, &b);
+                    }
+                }
+                Some("exportConfig") => self.export_config(),
+                Some("importConfig") => self.import_config(),
+                Some("restoreBackup") => {
+                    if let Some(p) = v.get("path").and_then(|p| p.as_str()) {
+                        let path = PathBuf::from(p);
+                        // Only files from our own backups folder.
+                        if self.state.backup_files().contains(&path) {
+                            self.restore_from_file(&path, ConfigSource::Backup);
+                        }
+                    }
+                }
+                Some(name @ ("feedbackInfo" | "feedbackResult")) => {
+                    self.on_feedback_action(name, &v);
+                }
+                Some("pageError") => log_page_error(&v),
+                Some(name @ ("checkUpdate" | "installUpdate" | "openReleasePage")) => {
+                    self.on_update_action(name);
+                }
+                Some("setPeekHotkey") => {
+                    let number = |key: &str| v.get(key).and_then(|n| n.as_u64()).unwrap_or(0);
+                    self.set_peek_hotkey_from_page(number("mods") as u32, number("vk") as u32);
+                }
+                Some("peekHotkeyRecording") => {
+                    if v.get("on").and_then(|o| o.as_bool()).unwrap_or(false) {
+                        self.pause_peek_hotkey();
+                    } else {
+                        self.resume_peek_hotkey();
+                    }
+                }
+                Some("repairIcons") => self.set_desktop_icons_hidden(false),
+                Some("hideDesktopIcons") => self.set_desktop_icons_hidden(true),
+                Some("rateInStore") => self.open_store_rating(),
+                Some("openManual") => self.open_manual(),
+                Some("openRepository") => {
+                    let url = pecofence_core::brand::REPOSITORY_URL;
+                    let _ = shell::shell_execute(std::path::Path::new(url), None, None);
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
+    /// Replaces the rule set (settings page / CLI). A folder portal never shows `fence.items`:
+    /// a rule routing into one would make matched items vanish from every fence, so such
+    /// targets fall back to the inbox.
+    pub(super) fn set_rules(&mut self, mut rules: pecofence_core::RuleSet) {
+        let targets = std::iter::once(&mut rules.default_target)
+            .chain(rules.list.iter_mut().map(|r| &mut r.target));
+        for t in targets {
+            if let Target::Fence(id) = *t
+                && self
+                    .state
+                    .fence(id)
+                    .is_some_and(|f| f.kind == FenceKind::FolderPortal)
+            {
+                *t = Target::Inbox;
+            }
+        }
+        self.state.config.rules = rules;
+        self.state.mark_dirty();
+        self.schedule_save();
+    }
+
+    /// Both rescue buttons and the tray use the same idempotent operation. A second
+    /// request must still repair Explorer's state if it changed outside PecoFence.
+    pub(super) fn set_desktop_icons_hidden(&mut self, hidden: bool) {
+        if self.apply_desktop_icons_hidden(hidden) {
+            self.state.config.settings.hide_real_icons = hidden;
+            self.settings_mutated();
+            self.desktop_icons_setting_changed();
+            self.settings_toast(if hidden {
+                pecofence_core::i18n::text("Windows 桌面图标已重新隐藏。")
+            } else {
+                pecofence_core::i18n::text("桌面图标已显示，可点击“重新隐藏桌面图标”恢复隐藏。")
+            });
+        } else {
+            self.push_settings_state();
+            self.settings_error(pecofence_core::i18n::text(
+                "桌面图标状态未能更改，请等待资源管理器恢复后重试。",
+            ));
+        }
+    }
+
+    /// The special desktop items (Recycle Bin, ...) enter or leave the inbox fence together
+    /// with the hide-real-icons setting: resync now rather than at the next folder event.
+    pub(super) fn desktop_icons_setting_changed(&mut self) {
+        self.sync_desktop_if_available("hide-real-icons toggled");
+        self.refresh_all();
+        self.push_workspace_summary();
+    }
+
+    fn apply_desktop_icons_hidden(&self, hidden: bool) -> bool {
+        let mut guard = self.anchor.borrow_mut();
+        let Some(a) = guard.as_mut() else {
+            return false;
+        };
+        if hidden {
+            return a.hide_desktop_icons();
+        }
+        a.restore_desktop_icons();
+        if pecofence_platform::shell_icons::desktop_icons_hidden()
+            && let Some(h) = desktop::resolve_icon_host(a.generation)
+        {
+            let _ = pecofence_platform::shell_icons::set_desktop_icons_hidden(
+                false, h.def_view, h.host,
+            );
+            // Clear our recovery marker only after Explorer actually restored the icons.
+            a.restore_desktop_icons();
+        }
+        !pecofence_platform::shell_icons::desktop_icons_hidden()
+    }
+
+    /// Applies a full settings object from the page, reacting to what changed.
+    pub(super) fn apply_settings(&mut self, mut new: pecofence_core::Settings) {
+        let old = self.state.config.settings.clone();
+        if new == old {
+            return;
+        }
+        if new.autostart != old.autostart {
+            if let Err(e) =
+                pecofence_platform::autostart::set_product_enabled(new.autostart, self.portable)
+            {
+                tracing::warn!(error = %e, "autostart change failed");
+                new.autostart = old.autostart;
+                self.settings_error(pecofence_core::i18n::text(
+                    "未能更改“随 Windows 启动”，请稍后重试。",
+                ));
+            } else if pecofence_platform::process::is_packaged() {
+                // Store installs: Windows owns the startup task, so hand the user the switch.
+                // The switch here keeps showing Windows' state; it is read again when the user
+                // comes back to this window.
+                new.autostart = old.autostart;
+                let _ = shell::shell_execute(
+                    std::path::Path::new("ms-settings:startupapps"),
+                    None,
+                    None,
+                );
+            }
+        }
+        if new.hide_real_icons != old.hide_real_icons
+            && !self.apply_desktop_icons_hidden(new.hide_real_icons)
+        {
+            new.hide_real_icons = old.hide_real_icons;
+            self.settings_error(pecofence_core::i18n::text(
+                "桌面图标状态未能更改，请稍后重试。",
+            ));
+        }
+        let icons_toggled = new.hide_real_icons != old.hide_real_icons;
+        if new.quick_hide.enabled != old.quick_hide.enabled
+            && let Some(a) = self.anchor.borrow_mut().as_mut()
+        {
+            a.quick_hide_enabled = new.quick_hide.enabled;
+            // Switched off while the fences are hidden: a double-click can no longer show them.
+            if !a.quick_hide_enabled && a.fences_hidden() {
+                a.toggle_fences_hidden();
+            }
+        }
+        if new.show_desktop != old.show_desktop
+            && let Some(a) = self.anchor.borrow_mut().as_mut()
+        {
+            a.behavior = match new.show_desktop {
+                ShowDesktopSetting::KeepVisible => ShowDesktopBehavior::KeepVisible,
+                ShowDesktopSetting::HideWithDesktop => ShowDesktopBehavior::HideWithDesktop,
+            };
+        }
+        if new.zorder != old.zorder
+            && let Some(a) = self.anchor.borrow_mut().as_mut()
+        {
+            a.mode = match new.zorder {
+                ZOrderSetting::InsertAboveHost => ZMode::InsertAboveHost,
+                ZOrderSetting::HwndBottom => ZMode::HwndBottom,
+            };
+            a.reanchor("zorder changed");
+        }
+        self.ctx.behavior.hover_peek.set(new.roll_up.hover_peek);
+        self.ctx.behavior.snapping.set(new.snapping.enabled);
+        self.ctx
+            .behavior
+            .snap_gap_dip
+            .set(snap_gap_dip(&new.snapping));
+        self.ctx
+            .behavior
+            .size_to_cells
+            .set(new.snapping.size_to_cells);
+        self.ctx.behavior.guide_lines.set(new.snapping.guide_lines);
+        self.ctx
+            .behavior
+            .click_to_expand
+            .set(new.roll_up.click_to_expand);
+        self.ctx
+            .behavior
+            .title_on_hover
+            .set(new.roll_up.title_on_hover);
+        self.ctx.behavior.title_align.set(new.title_align);
+        self.ctx.behavior.tab_bar.set(new.tab_bar);
+        self.ctx.behavior.label_color.set(new.label_color);
+        self.ctx
+            .behavior
+            .hide_inactive_scrollbar
+            .set(new.roll_up.hide_inactive_scrollbar);
+        self.ctx
+            .behavior
+            .switch_tab_on_hover
+            .set(new.roll_up.switch_tab_on_hover);
+        self.ctx
+            .behavior
+            .hide_count_and_chevron
+            .set(new.roll_up.hide_count_and_chevron);
+        self.ctx
+            .behavior
+            .selection_clear_on_leave
+            .set(new.selection.clear_on_leave);
+        // Only whole rows show with 「调整大小时按整行整列对齐」 on: redraw.
+        let chrome_changed = new.roll_up.title_on_hover != old.roll_up.title_on_hover
+            || new.title_align != old.title_align
+            || new.label_color != old.label_color
+            || new.roll_up.hide_inactive_scrollbar != old.roll_up.hide_inactive_scrollbar
+            || new.roll_up.hide_count_and_chevron != old.roll_up.hide_count_and_chevron
+            || new.snapping.size_to_cells != old.snapping.size_to_cells;
+        if chrome_changed {
+            for w in self.fences.values() {
+                w.redraw();
+            }
+        }
+        if new.tab_bar != old.tab_bar {
+            // The tab column takes (or gives back) width beside the items, and an auto-height
+            // fence grows to show every tab in it.
+            let hosts: Vec<FenceId> = self.fences.keys().copied().collect();
+            for host in hosts {
+                if let Some(w) = self.fences.get(&host) {
+                    w.sync_tab_bar();
+                }
+                self.apply_auto_height(host);
+            }
+        }
+        self.ctx
+            .behavior
+            .backdrop
+            .set(backdrop_mode_for(new.backdrop));
+        let visual_changed = new.theme != old.theme
+            || new.theme_style != old.theme_style
+            || new.custom_theme != old.custom_theme
+            || new.backdrop != old.backdrop;
+        let icons_changed = new.icons != old.icons;
+        let push_changed = new.roll_up.push_neighbors != old.roll_up.push_neighbors;
+        let inbox_hiding_changed =
+            new.hide_inbox_when_icons_shown != old.hide_inbox_when_icons_shown;
+        // 「调整大小时按整行整列对齐」 switched on keeps every rectangle: the rows fill any
+        // height with whole icons (redrawn above), and rounding would undo fences lined up.
+        self.state.config.settings = new;
+        self.refresh_language();
+        self.state.mark_dirty();
+        self.schedule_save();
+        self.sync_peek_hotkey();
+        if icons_toggled {
+            self.desktop_icons_setting_changed();
+        }
+        if icons_changed {
+            self.apply_icon_variant();
+        }
+        if visual_changed {
+            self.refresh_visuals(true);
+        }
+        if push_changed {
+            // Pushed fences go back at once when it is switched off.
+            self.reflow_pushed();
+        }
+        if inbox_hiding_changed {
+            self.sync_inbox_window();
+        }
+        self.push_settings_state();
+    }
+
+    pub(super) fn refresh_language(&mut self) {
+        let language = self
+            .state
+            .config
+            .settings
+            .language
+            .resolve(pecofence_platform::locale::ui_language());
+        if language == pecofence_core::i18n::language() {
+            return;
+        }
+        pecofence_core::i18n::set_language(language);
+        tracing::info!(language = language.tag(), "interface language changed");
+        if let Some(host) = &self.settings {
+            host.update_language();
+        }
+        for window in self.fences.values() {
+            window.redraw();
+        }
+        self.push_settings_state();
+    }
+}

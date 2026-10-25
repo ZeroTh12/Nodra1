@@ -1,0 +1,79 @@
+/* Lessons 3.1 标签页 and 3.2 双击桌面隐藏栅栏 (demos/tabs.js, demos/hide.js). */
+
+/* Tab strip in a fence's title row (fence_chrome.rs, Fluent light): pills from x 8 with 4 DIP
+   gaps, each its caption + 16 wide (48..160; tabs.js measures and sets the widths), the active
+   one on a white fill with a 20 × 2 accent bar under its caption; every caption is semibold,
+   inactive ones in the secondary text colour. */
+.tabs-strip {
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 32px;
+}
+
+.tabs-sel, .tabs-hov {
+    left: 0;
+    top: 5px;
+    height: 22px;
+    border-radius: 4px;
+}
+
+.tabs-sel { background: rgba(255, 255, 255, .6) }
+.tabs-hov { background: rgba(0, 0, 0, .045) }
+
+.tabs-mark {
+    left: 0;
+    top: 24px;
+    width: 20px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--win-accent);
+}
+
+.tabs-cap {
+    left: 0;
+    top: 0;
+    height: 32px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 32px;
+    white-space: nowrap;
+    padding: 0 8px;             /* past 160 DIP the caption ellipsizes, as in the app */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: rgba(27, 33, 51, .62);
+}
+
+.tabs-cap.on { color: #1b2133 }
+.tabs-cap.pressed { color: rgba(27, 33, 51, .45) }
+
+/* Drag-to-merge target: accent wash over the title row plus the selection ring. */
+.tabs-merge {
+    left: 4px;
+    right: 4px;
+    top: 4px;
+    height: 24px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--win-accent) 9%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--win-accent) 40%, transparent);
+    opacity: 0;
+}
+
+/* drop_preview.rs: white 2 DIP stroke inside a dark 1 DIP hairline, light wash, the fences'
+   corner radius; drawn directly below the dragged fence. */
+.tabs-outline {
+    left: 0;
+    top: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .14);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .45), inset 0 0 0 3px rgba(255, 255, 255, .92);
+}
+
+/* One tab's content inside the shared fence body (cross-fade + slide on a switch). */
+.tabs-panel {
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}

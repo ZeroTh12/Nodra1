@@ -1,0 +1,200 @@
+/* Lessons 4.2 (title-hover) and 5.2 (ai). The 4.2 settings window is the shared mock
+   (demos/settings.css, .set-*); .xs-* adds its scrollbar, .xa-* the coding-agent terminal and
+   the restyled fences. */
+
+/* settings page scrollbar: main::-webkit-scrollbar 12 px, thumb #0000005c inside a 4 px border */
+.xs-thumb { right: 4px; top: 0; width: 4px; border-radius: 2px; background: rgba(0, 0, 0, .36) }
+
+/* ---------- coding-agent terminal (5.2) ---------- */
+
+.xa-term {
+    left: 0;
+    top: 0;
+    overflow: hidden;
+    border-radius: 9px;
+    background: #0b172d;
+    color: #d7e0f2;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .07), 0 0 0 1.5px rgba(10, 16, 34, .5), 0 18px 42px rgba(22, 26, 64, .34);
+}
+
+.xa-bar { left: 0; right: 0; top: 0; height: 30px; background: #101f3a }
+
+.xa-tab {
+    left: 8px;
+    top: 5px;
+    height: 25px;
+    padding: 0 14px 0 30px;
+    border-radius: 6px 6px 0 0;
+    background: #0b172d;
+    color: #c9d4ea;
+    font-size: 11.5px;
+    line-height: 25px;
+    white-space: nowrap;
+}
+
+.xa-tab svg { left: 11px; top: 7px; width: 12px; height: 12px }
+.xa-btns { right: 0; top: 0; width: 108px; height: 30px }
+.xa-btns svg { top: 10px; width: 10px; height: 10px; overflow: visible }
+
+.xa-view { left: 16px; right: 14px; top: 42px; overflow: hidden }
+.xa-log { left: 0; right: 0; top: 0 }
+.stage-inner .xa-log * { position: relative }
+
+.xa-turn {
+    display: block;
+    margin: 0 0 10px;
+    color: #eef2fb;
+    font-size: 12.5px;
+    line-height: 1.6;
+}
+
+.xa-turn.agent { margin: 2px 0 0; color: #c9d4ea }
+
+.xa-who {
+    display: inline-block;
+    min-width: 38px;
+    margin-right: 8px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: #1c2d4d;
+    color: #9db4e6;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: .04em;
+    text-align: center;
+    vertical-align: 1px;
+}
+
+.xa-cmd {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    column-gap: 8px;
+    margin: 0 0 7px;
+}
+
+.xa-ic { width: 14px; height: 14px; margin-top: 2px }
+
+.stage-inner .xa-ic > * { position: absolute; left: 0; top: 0 }
+
+.xa-spin {
+    width: 12px;
+    height: 12px;
+    margin: 1px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, .16);
+    border-top-color: #9fb4ff;
+}
+
+.xa-ok { width: 14px; height: 14px }
+
+.xa-line {
+    color: #e6ebff;
+    font: 400 11.5px/1.5 "Cascadia Code", "Cascadia Mono", Consolas, "Microsoft YaHei UI", monospace;
+    overflow-wrap: anywhere;
+}
+
+.xa-bin { color: #8fa8ff }
+
+.xa-res {
+    grid-column: 2;
+    overflow: hidden;
+    color: #79d6a8;
+    font: 400 10.5px/1.5 "Cascadia Code", "Cascadia Mono", Consolas, "Microsoft YaHei UI", monospace;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.xa-input {
+    left: 14px;
+    right: 14px;
+    bottom: 12px;
+    min-height: 36px;
+    padding: 8px 12px 8px 28px;
+    border-radius: 8px;
+    background: #12223f;
+    box-shadow: inset 0 0 0 1px #24375c;
+    color: #eef2fb;
+    font-size: 12.5px;
+    line-height: 20px;
+}
+
+.xa-input.focus { box-shadow: inset 0 0 0 1px #4d6bb3 }
+.stage-inner .xa-input span { position: static }
+.xa-gt { left: 12px; top: 8px; color: #6f8cff; font: 600 12.5px/20px "Cascadia Code", Consolas, monospace }
+
+.xa-caret {
+    display: inline-block;
+    width: 1.5px;
+    height: 15px;
+    margin-left: 1px;
+    vertical-align: -3px;
+    background: #9fb4ff;
+}
+
+.keys.xa-keys { left: 20px; right: auto; width: 404px; top: 176px; bottom: auto }
+
+/* fences re-themed live: the demo sets these per frame */
+.xa-fence { color: var(--xa-ink, #1b2133) }
+.xa-fence .ico span { text-shadow: var(--xa-halo, 0 0 6px rgba(255, 255, 255, .7)) }
+
+/* side column: command names */
+[data-lesson="ai"] .side code {
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: #eef1f8;
+    color: var(--ink);
+    font: 500 13px/1.4 "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+    overflow-wrap: anywhere;
+}
+
+.xa-view {
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 10px);
+    mask-image: linear-gradient(to bottom, transparent, #000 10px);
+}
+
+/* side column: the example request with a copy button (sits like .tip, in the lesson's blue) */
+.xa-prompt {
+    margin-top: 22px;
+    padding: 14px 18px 15px;
+    border-radius: 12px;
+    background: #f1f4fd;
+    box-shadow: inset 0 0 0 1px #dde3f7;
+}
+
+.xa-prompt-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.xa-prompt h3 { margin: 0; color: var(--accent); font-size: 14px }
+
+.xa-prompt p {
+    margin: 0;
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.7;
+}
+
+.xa-copy {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 8px;
+    border: 0;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 0 0 1px #d5dcf2, 0 1px 2px rgba(25, 36, 58, .06);
+    color: var(--accent);
+    font: 600 13px/20px var(--font);
+    cursor: pointer;
+}
+
+.xa-copy svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.3 }
+.xa-copy:hover { background: #f8f9fe }
+.xa-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.xa-copy.done { color: #2e8a5e; box-shadow: 0 0 0 1px #bfe3cf }

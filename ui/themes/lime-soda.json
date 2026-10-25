@@ -1,0 +1,20 @@
+{
+  "base": "liquidGlass",
+  "blur": 10,
+  "refraction": 0.95,
+  "rimLight": 1.3,
+  "cornerRadius": 24,
+  "accent": "#0FA36B",
+  "light": {
+    "tint": "#E7F8EEC2",
+    "luminosity": 0.2,
+    "textPrimary": "#0E3A24",
+    "textSecondary": "#3B6B4F"
+  },
+  "dark": {
+    "tint": "#0E1F169E",
+    "luminosity": 0.25,
+    "textPrimary": "#DDF3E6",
+    "textSecondary": "#9CC7AF"
+  }
+}

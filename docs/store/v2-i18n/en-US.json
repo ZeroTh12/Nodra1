@@ -1,0 +1,62 @@
+{
+  "label": "A HOME FOR YOUR WINDOWS 11 DESKTOP",
+  "titles": [
+    "Make room for what matters.",
+    "Your files. Without losing your flow.",
+    "One fence. Every project.",
+    "New files.\nRight place.",
+    "Two moods. Your desktop."
+  ],
+  "sub": [
+    "Projects, inspiration, everyday files. Beautifully in order.",
+    "Bring your desktop files above the app you are working in.",
+    "From project files to inspiration. Just switch tabs.",
+    "Set a rule by file type.\nLet PecoFence handle the sorting.",
+    "Light or dark. Make your fences feel at home on your wallpaper."
+  ],
+  "captions": [
+    "Project folders, a PDF and original design studies in Liquid Glass fences.",
+    "Peek brings fences above a sample document window. Ctrl + Alt + Space to open, Esc to return.",
+    "One tabbed fence shown twice: once with Projects open, once with Inspiration.",
+    "Extension rules sorted the new files Form study.png and Launch checklist.md without changing their paths or contents.",
+    "The same design files on two desktops, in light and dark Liquid Glass."
+  ],
+  "short": "Make room for what matters. Organize files in glass panels, switch projects with tabs and bring your desktop into reach with one shortcut, or ask your AI agent to set it up. Free, open source and light on memory: about 40 MB.",
+  "uploadCaptions": [
+    "Projects, inspiration and everyday files, each in its own Liquid Glass fence.",
+    "Peek brings your fences above a sample document. Press Ctrl + Alt + Space to open and Esc to go back.",
+    "Projects and Inspiration share one fence. Inspiration is open; select a tab to switch.",
+    "Extension rules automatically sorted new PNG and Markdown files into the Images and Documents fences.",
+    "Liquid Glass on a dark wallpaper, with project folders, design references and everyday documents within reach."
+  ],
+  "labels": {
+    "projects": "PROJECTS",
+    "inspiration": "INSPIRATION",
+    "autosort": "AUTO-SORT",
+    "light": "LIGHT",
+    "dark": "DARK"
+  },
+  "description": "A calmer desktop. Everything within reach.\n\nGive every project a place. PecoFence organizes your Windows 11 desktop into fences: glass panels that keep your files close and give your wallpaper room to breathe.\n\nLET YOUR AI SET IT UP\nPecoFence includes pecofence-cli. Tell a coding agent such as Claude Code, Codex or Cursor what you want in your own words: it reads your current setup and applies the changes, from new fences and sorting rules to icon sizes, colors and themes. Snapshots and configuration export keep a copy of a setup you like.\n\nLESS TIME SORTING\nSet rules for file types, names, age or size. New desktop files appear in the right fence automatically. Automatic sorting leaves their locations on disk unchanged.\n\nYOUR FILES, ONE SHORTCUT AWAY\nPress Ctrl + Alt + Space to bring your fences above the current app. Grab what you need, then press Esc to return.\n\nA SPACE FOR EVERY PROJECT\nCombine related fences into tabs. Switch in a click, or drag a tab out into its own fence. Keep a live folder on the desktop and browse its subfolders in place.\n\nMAKE ROOM FOR FOCUS\nDouble-click empty desktop space to hide your fences and again to bring them back. Roll a fence up to its title bar and hover to expand it.\n\nGLASS THAT FITS YOUR DESKTOP\nChoose Fluent or Liquid Glass, light or dark, then adjust each fence's color and opacity. Save your layout with snapshots and backups.\n\nLIGHT ON YOUR PC\nPecoFence is a native application that idles at about 40 MB of memory in Task Manager. The settings window loads only when you open it.\n\nFree and open source under Apache 2.0. No app account required. Ten built-in display languages, available offline. Designed for Windows 10 22H2 / Windows 11 x64.\n\nPecoFence uses real files: file operations you initiate, including moves, renames and deletions, affect files on disk. Your normal Windows desktop icons return when the app exits.",
+  "features": [
+    "Automatic desktop organization with rules for file types, names, age and size",
+    "Built-in pecofence-cli, so AI agents like Claude Code, Codex and Cursor can set up fences, rules and appearance",
+    "Ctrl + Alt + Space brings your fences above the current app",
+    "Tabbed fences and live folders on the desktop",
+    "Fluent and Liquid Glass themes with per-fence colors and opacity",
+    "Double-click to hide fences; roll fences up to their title bars",
+    "Layout snapshots, daily backups and configuration export",
+    "Native app that idles at about 40 MB of memory",
+    "Free, open source and available in ten display languages"
+  ],
+  "keywords": [
+    "desktop organizer",
+    "desktop icon organizer",
+    "organize desktop icons",
+    "desktop partitions",
+    "clean desktop",
+    "icon groups",
+    "desktop folders"
+  ],
+  "trailerTitle": "PecoFence — organize your desktop, or let your AI do it",
+  "releaseNotes": "What's new in this update: signing out or shutting down with a PecoFence menu open now shows the Windows desktop icons again and keeps your last changes. Folders shown on the desktop notice when their folder is renamed or moved away. In Fluent, a right click cancels moving a fence also while the pointer rests. Start with Windows shows the switch Windows keeps for PecoFence under Settings › Apps › Startup, and follows a change made there. On Windows 10 without its September 2023 update, About shows PecoFence's memory again. New .tmp files show after a minute, and shortcuts PecoFence makes are named in the Windows language."
+}

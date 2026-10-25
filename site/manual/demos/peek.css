@@ -1,0 +1,348 @@
+/* 3.3 速览 and 3.4 在桌面显示文件夹 (agent "peek"). Every class is prefixed pk-. */
+
+/* Fluent fences draw a blurred crop of the wallpaper (not whatever is behind the window), so a
+   fence floating over an app window during Peek looks exactly as it does on the desktop.
+   .pk-glass swaps the backdrop blur for that crop; the rim highlights move onto the crop. */
+.fence.pk-glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+.pk-crop {
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+}
+
+/* The .wall picture (38% 30% / 150% auto on 800x450 = 1200x675 at -152,-67.5), drawn 40 px
+   larger on every side so the blur has no soft edge. */
+.pk-crop > div {
+    left: -40px;
+    top: -40px;
+    width: 880px;
+    height: 530px;
+    background: url(../assets/showcase-wallpaper.jpg) -112px -27.5px / 1200px 675px no-repeat;
+    filter: blur(16px) saturate(1.5);
+}
+
+.pk-crop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .44), rgba(246, 243, 251, .34));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .62), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+/* Peek dimmer: one black layered window over the work area at 30 % (taskbar stays clear). */
+.pk-dim {
+    left: 0;
+    top: 0;
+    width: 800px;
+    height: 422px;
+    background: #000;
+    opacity: 0;
+    z-index: 2;
+}
+
+/* ---------- app windows (Windows 11 style) ---------- */
+
+.pk-win {
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .13), 0 2px 6px rgba(20, 16, 40, .1), 0 18px 44px rgba(20, 16, 40, .26);
+    transform-origin: 50% 50%;
+    color: #1f2430;
+    font-size: 12px;
+    z-index: 2;
+}
+
+.pk-win * { position: relative }
+.pk-win svg { display: block }
+
+.pk-caps {
+    margin-left: auto;
+    align-self: stretch;
+    display: flex;
+    color: #2b2f3a;
+}
+
+.pk-caps i {
+    width: 40px;
+    display: grid;
+    place-items: center;
+}
+
+.pk-caps svg { width: 10px; height: 10px }
+
+/* browser */
+
+.pk-tabs {
+    flex: none;
+    height: 36px;
+    display: flex;
+    align-items: flex-end;
+    padding-left: 8px;
+    background: #e9eaf0;
+}
+
+.pk-tab {
+    width: 218px;
+    height: 29px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 9px 0 11px;
+    border-radius: 8px 8px 0 0;
+    background: #fff;
+    font-size: 11.5px;
+    white-space: nowrap;
+}
+
+.pk-tab img { width: 14px; height: 14px; flex: none }
+.pk-tab span { flex: 1; overflow: hidden; text-overflow: ellipsis }
+.pk-tab svg { width: 8px; height: 8px; color: #5b6070 }
+
+.pk-plus {
+    width: 30px;
+    height: 29px;
+    display: grid;
+    place-items: center;
+    color: #4b5060;
+}
+
+.pk-plus svg { width: 10px; height: 10px }
+.pk-tabs .pk-caps { margin-bottom: 0; height: 36px }
+
+.pk-bar {
+    flex: none;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 10px;
+    background: #fff;
+    border-bottom: 1px solid #eceef2;
+}
+
+.pk-nav {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    color: #4b5060;
+}
+
+.pk-nav.off { color: #b4b8c3 }
+.pk-nav svg { width: 13px; height: 13px }
+
+.pk-addr {
+    flex: 1;
+    height: 26px;
+    margin: 0 8px 0 8px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: 13px;
+    background: #f0f1f5;
+    color: #3c4150;
+    font-size: 11.5px;
+}
+
+.pk-addr svg { width: 11px; height: 11px; color: #5b6070 }
+.pk-addr em { font-style: normal; color: #8a8f9c }
+
+.pk-page {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.pk-side {
+    flex: none;
+    width: 150px;
+    padding: 20px 16px;
+    background: #f7f8fa;
+    border-right: 1px solid #eef0f3;
+}
+
+.pk-side b {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 11.5px;
+    font-weight: 650;
+    color: #3c4150;
+}
+
+.pk-main {
+    flex: 1;
+    padding: 22px 30px;
+}
+
+.pk-main h1 {
+    margin: 0;
+    font: 650 20px/1.2 "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    letter-spacing: -.2px;
+}
+
+.pk-meta {
+    margin: 6px 0 16px;
+    color: #7b8090;
+    font-size: 11px;
+}
+
+.pk-cards {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.pk-card {
+    flex: 1;
+    height: 74px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.pk-card small { display: block; margin-top: 6px; font-size: 18px; font-weight: 650 }
+.pk-card.c1 { background: #eef1fd; color: #3a4fb5 }
+.pk-card.c2 { background: #fdf0e8; color: #a3532a }
+.pk-card.c3 { background: #eaf6ef; color: #2b7a4b }
+
+/* placeholder text lines */
+.pk-ln {
+    display: block;
+    height: 7px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    background: #e4e6ec;
+}
+
+.pk-side .pk-ln { height: 6px; margin-bottom: 12px; background: #e3e5eb }
+.pk-ln.h { height: 9px; margin: 16px 0 12px; background: #cfd3dc }
+
+/* document editor */
+
+.pk-titlebar {
+    flex: none;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    background: #eef0f5;
+    font-size: 11.5px;
+}
+
+.pk-titlebar img { width: 14px; height: 14px }
+
+.pk-ribbon {
+    flex: none;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    background: #f8f9fb;
+    border-bottom: 1px solid #e8eaef;
+}
+
+.pk-ribbon i {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #e3e6ed;
+}
+
+.pk-ribbon i.w { width: 64px; background: #fff; box-shadow: inset 0 0 0 1px #dfe2e9 }
+.pk-ribbon i.s { width: 1px; height: 18px; margin: 0 4px; border-radius: 0; background: #dfe2e9 }
+
+.pk-canvas {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding-top: 14px;
+    background: #e8eaef;
+    overflow: hidden;
+}
+
+.pk-paper {
+    width: 300px;
+    padding: 26px 30px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+}
+
+.pk-paper h2 {
+    margin: 0 0 14px;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.pk-paper .pk-ln { height: 6px; margin-bottom: 9px }
+
+/* ---------- folder portal title decorations ---------- */
+
+/* Up button (Segoe Fluent E74A in a 28x28 box at x 6): clear at rest, SubtleFill on hover,
+   the lighter pressed fill and a tertiary glyph while held. */
+.pk-up {
+    left: 6px;
+    top: 2px;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    color: rgba(27, 33, 51, .72);
+}
+
+.pk-up.pressed { color: rgba(27, 33, 51, .45) }
+.pk-up svg { position: relative; width: 12px; height: 12px }
+
+.pk-up i {
+    inset: 0;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .5);
+    opacity: 0;
+}
+
+.pk-up.pressed i { background: rgba(255, 255, 255, .3) }
+
+/* Folder glyph (E8B7) before the title. */
+.pk-fold {
+    top: 9px;
+    width: 14px;
+    height: 14px;
+    color: rgba(27, 33, 51, .72);
+}
+
+.pk-fold svg { position: static; display: block; width: 14px; height: 14px }
+
+/* Selected item of a fence that is not the active window (Explorer's grey selection). */
+.ico.pk-dull {
+    background: rgba(255, 255, 255, .32);
+    box-shadow: inset 0 0 0 1px rgba(98, 104, 122, .26);
+}
+
+/* Windows 11 tooltip */
+.pk-tip {
+    left: 0;
+    top: 0;
+    padding: 3px 8px 4px;
+    border-radius: 4px;
+    background: #fbfbfc;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .1), 0 4px 10px rgba(0, 0, 0, .13);
+    font-size: 11.5px;
+    line-height: 16px;
+    white-space: nowrap;
+    opacity: 0;
+    z-index: 6;
+}

@@ -1,0 +1,25 @@
+{
+  "base": "fluent",
+  "blur": 6,
+  "noise": 0.06,
+  "chroma": 0.35,
+  "cornerRadius": 10,
+  "shadowOpacity": 0.14,
+  "shadowBlur": 6,
+  "shadowOffset": 3,
+  "accent": "#8A5A2B",
+  "light": {
+    "tint": "#F7F1E3E0",
+    "luminosity": 0.5,
+    "textPrimary": "#2B2115",
+    "textSecondary": "#5C4B33",
+    "stroke": "#8A5A2B30"
+  },
+  "dark": {
+    "tint": "#262019D9",
+    "luminosity": 0.3,
+    "textPrimary": "#EFE8D8",
+    "textSecondary": "#B8AA90",
+    "stroke": "#EFE8D826"
+  }
+}

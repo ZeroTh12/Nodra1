@@ -1,0 +1,108 @@
+//! Process memory statistics, using the two counters that matter:
+//! private working set (what Task Manager shows) and private commit.
+
+use crate::bindings::*;
+use windows_core::Result;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MemoryStats {
+    /// Private working set in bytes (Task Manager "Memory (active private working set)").
+    pub private_working_set: usize,
+    /// Total working set in bytes (private + shared pages resident).
+    pub working_set: usize,
+    /// Peak working set in bytes.
+    pub peak_working_set: usize,
+    /// Private commit charge in bytes (`PrivateUsage`).
+    pub private_commit: usize,
+    /// Shared commit in bytes (section objects, incl. GPU shared surfaces).
+    pub shared_commit: u64,
+    /// Page fault count since process start.
+    pub page_faults: u32,
+}
+
+impl MemoryStats {
+    pub fn current() -> Result<Self> {
+        let mut counters = PROCESS_MEMORY_COUNTERS_EX2 {
+            cb: size_of::<PROCESS_MEMORY_COUNTERS_EX2>() as u32,
+            ..Default::default()
+        };
+        // SAFETY: the EX2 structure is a prefix-compatible superset of PROCESS_MEMORY_COUNTERS
+        // and `cb` tells the API how much we can receive.
+        unsafe {
+            GetProcessMemoryInfo(
+                GetCurrentProcess(),
+                (&mut counters as *mut PROCESS_MEMORY_COUNTERS_EX2).cast(),
+                counters.cb,
+            )
+            .ok()?;
+        }
+        // Windows 10 before its September 2023 update leaves PrivateWorkingSetSize at 0.
+        let private_working_set = if counters.PrivateWorkingSetSize == 0 {
+            private_pages_in_working_set().unwrap_or(0)
+        } else {
+            counters.PrivateWorkingSetSize
+        };
+        Ok(Self {
+            private_working_set,
+            working_set: counters.WorkingSetSize,
+            peak_working_set: counters.PeakWorkingSetSize,
+            private_commit: counters.PrivateUsage,
+            shared_commit: counters.SharedCommitUsage,
+            page_faults: counters.PageFaultCount,
+        })
+    }
+
+    pub fn summary(&self) -> String {
+        const MB: f64 = 1024.0 * 1024.0;
+        format!(
+            "private WS {:.1} MB | WS {:.1} MB (peak {:.1}) | private commit {:.1} MB | shared commit {:.1} MB",
+            self.private_working_set as f64 / MB,
+            self.working_set as f64 / MB,
+            self.peak_working_set as f64 / MB,
+            self.private_commit as f64 / MB,
+            self.shared_commit as f64 / MB,
+        )
+    }
+}
+
+/// Hands this process's working set back to Windows. The pages stay in memory on the standby
+/// list and return on their next touch, so only what is used again comes back: memory that
+/// only startup or an earlier interaction needed stops counting in Task Manager.
+pub fn trim_working_set() {
+    windows_core::link!("kernel32.dll" "system" fn K32EmptyWorkingSet(process: HANDLE) -> windows_core::BOOL);
+    // SAFETY: the pseudo handle of this process.
+    unsafe {
+        let _ = K32EmptyWorkingSet(GetCurrentProcess());
+    }
+}
+
+/// The private working set counted page by page (`QueryWorkingSet`): the resident pages no
+/// other process shares, 4 KB each.
+fn private_pages_in_working_set() -> Option<usize> {
+    const SHARED_BIT: usize = 1 << 8;
+    const ERROR_BAD_LENGTH: u32 = 24;
+    // Entry 0 is the number of entries, then one PSAPI_WORKING_SET_BLOCK per page.
+    let mut buf: Vec<usize> = vec![0; 1 + 16 * 1024];
+    for _ in 0..4 {
+        // SAFETY: `buf` is writable for the byte length passed.
+        let ok = unsafe {
+            QueryWorkingSet(
+                GetCurrentProcess(),
+                buf.as_mut_ptr().cast(),
+                (buf.len() * size_of::<usize>()) as u32,
+            )
+        };
+        if ok.as_bool() {
+            let n = buf[0].min(buf.len() - 1);
+            let private = buf[1..=n].iter().filter(|e| *e & SHARED_BIT == 0).count();
+            return Some(private * 4096);
+        }
+        // SAFETY: plain FFI call.
+        if unsafe { GetLastError() } != ERROR_BAD_LENGTH {
+            return None;
+        }
+        // Too small: entry 0 says how many pages there are now.
+        buf = vec![0; buf[0].max(buf.len()) + 4096];
+    }
+    None
+}

@@ -1,0 +1,152 @@
+/* Appendix A (keys) and B (FAQ): static sections, no stage. Classes are prefixed `ap-`. */
+
+.appendix .lesson-head { margin-bottom: 26px }
+
+/* ---------- A: shortcut tables ---------- */
+
+.ap-keys {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.ap-col {
+    display: grid;
+    gap: 20px;
+}
+
+@media (max-width: 960px) {
+    .ap-keys { grid-template-columns: minmax(0, 1fr) }
+}
+
+.ap-card {
+    padding: 16px 20px 8px;
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: 0 0 0 1px var(--edge), 0 6px 18px rgba(25, 36, 58, .05);
+}
+
+.ap-card h3 {
+    margin: 0 0 6px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: .3px;
+}
+
+.ap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    line-height: 1.55;
+}
+
+.ap-table th, .ap-table td {
+    padding: 9px 0;
+    border-top: 1px solid var(--edge);
+    vertical-align: top;
+    text-align: left;
+}
+
+.ap-table tr:first-child th, .ap-table tr:first-child td { border-top: 0 }
+
+.ap-table th {
+    width: 46%;
+    padding-right: 16px;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.ap-table td { color: var(--ink-soft) }
+.ap-table b { color: var(--ink); font-weight: 650 }
+
+/* keys inside rows sit a touch lower so the keycap shadow does not touch the line above */
+.ap-table kbd, .ap-q kbd {
+    display: inline-block;
+    margin: 1px 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.ap-note {
+    margin: 2px 0 10px;
+    padding-top: 9px;
+    border-top: 1px solid var(--edge);
+    color: var(--ink-mute);
+    font-size: 13.5px;
+}
+
+.ap-note-top {
+    margin: 0 0 2px;
+    padding: 0 0 8px;
+    border-top: 0;
+    border-bottom: 1px solid var(--edge);
+}
+
+.ap-note-top + .ap-table tr:first-child th,
+.ap-note-top + .ap-table tr:first-child td { border-top: 0 }
+
+/* no one- or two-character last lines (e.g. a lone 「时：」) */
+.ap-table th, .ap-table td, .ap-note, .ap-q p { text-wrap: pretty }
+
+/* ---------- B: FAQ cards ---------- */
+
+.ap-faq {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+    align-items: stretch;
+}
+
+@media (max-width: 960px) {
+    .ap-faq { grid-template-columns: minmax(0, 1fr) }
+}
+
+.ap-q {
+    padding: 16px 20px 17px;
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: 0 0 0 1px var(--edge), 0 6px 18px rgba(25, 36, 58, .05);
+}
+
+.ap-q h3 {
+    position: relative;
+    margin: 0 0 6px;
+    padding-left: 14px;
+    color: var(--ink);
+    font: 650 16px/1.45 var(--font);
+}
+
+.ap-q h3::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: .42em;
+    width: 4px;
+    height: .95em;
+    border-radius: 2px;
+    background: var(--accent);
+}
+
+.ap-q p {
+    margin: 0;
+    padding-left: 14px;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    line-height: 1.7;
+}
+
+.ap-q b { color: var(--ink); font-weight: 650 }
+
+.appendix code {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #eef1f7;
+    color: var(--ink);
+    font: 500 13px/1.4 "Cascadia Mono", Consolas, monospace;
+    white-space: nowrap;
+}
+
+/* long paths break at their <wbr>s (Safari ignores <wbr> under nowrap and widens the page) */
+.appendix code:has(wbr) { white-space: normal }

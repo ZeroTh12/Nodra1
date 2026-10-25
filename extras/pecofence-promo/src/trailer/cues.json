@@ -1,0 +1,662 @@
+{
+ "bpm": 120,
+ "fps": 60,
+ "duration": 30.0,
+ "key": "A major",
+ "chords": [
+  {
+   "bar": 1,
+   "t": 0,
+   "chord": "F#m9"
+  },
+  {
+   "bar": 2,
+   "t": 2,
+   "chord": "Esus4"
+  },
+  {
+   "bar": 3,
+   "t": 4,
+   "chord": "Dmaj9"
+  },
+  {
+   "bar": 4,
+   "t": 6,
+   "chord": "A/C#"
+  },
+  {
+   "bar": 5,
+   "t": 8,
+   "chord": "F#m7"
+  },
+  {
+   "bar": 6,
+   "t": 10,
+   "chord": "Esus4",
+   "then": {
+    "t": 11,
+    "chord": "E"
+   }
+  },
+  {
+   "bar": 7,
+   "t": 12,
+   "chord": "Dmaj9"
+  },
+  {
+   "bar": 8,
+   "t": 14,
+   "chord": "A/C#"
+  },
+  {
+   "bar": 9,
+   "t": 16,
+   "chord": "F#m7"
+  },
+  {
+   "bar": 10,
+   "t": 18,
+   "chord": "Esus4",
+   "then": {
+    "t": 19,
+    "chord": "E"
+   }
+  },
+  {
+   "bar": 11,
+   "t": 20,
+   "chord": "Dmaj9"
+  },
+  {
+   "bar": 12,
+   "t": 22,
+   "chord": "A/C#"
+  },
+  {
+   "bar": 13,
+   "t": 24,
+   "chord": "F#m7",
+   "then": {
+    "t": 25,
+    "chord": "E"
+   }
+  },
+  {
+   "bar": 14,
+   "t": 26,
+   "chord": "Aadd9"
+  },
+  {
+   "bar": 15,
+   "t": 28,
+   "chord": "Aadd9 (ring out)"
+  }
+ ],
+ "sections": [
+  {
+   "name": "intro",
+   "start": 0,
+   "end": 4,
+   "energy": 0.25,
+   "notes": "Messy desktop. Filtered pad + sparse keys motif; quiet pops on icon appearances; riser 3.0-4.0; reverse swell ends exactly at 4.0."
+  },
+  {
+   "name": "brand",
+   "start": 4,
+   "end": 8,
+   "energy": 0.7,
+   "notes": "HIT at 4.0: icons fly into fences. Drums + bass enter. Light sweep dark->light at 5.0. Title 'PecoFence / Make room for what matters.'"
+  },
+  {
+   "name": "autosort",
+   "start": 8,
+   "end": 12,
+   "energy": 0.75,
+   "notes": "New files land in fences at 8.75, 9.5, 10.25, 11.0: each landing is a pitched pluck (rising chord tones) + soft pop."
+  },
+  {
+   "name": "tabs",
+   "start": 12,
+   "end": 16,
+   "energy": 0.8,
+   "notes": "Merge snap at 12.5; tab clicks at 14.0 and 15.0. Downlifter 15.5-16.0 into the breakdown."
+  },
+  {
+   "name": "build",
+   "start": 16,
+   "end": 20,
+   "energy": 0.45,
+   "notes": "Breakdown: drums out, pad + filtered arp, typing clicks 16.45-17.9; command ticks; PDF swooshes 19.4; snare roll + riser 19.0-20.0 (silence gap 19.94-20.0 optional)."
+  },
+  {
+   "name": "drop",
+   "start": 20,
+   "end": 26,
+   "energy": 1.0,
+   "notes": "DROP at 20.0 exactly as fences grow (icons 64->96). Tint shimmer at 22.0. Full future-pop chorus with lead hook."
+  },
+  {
+   "name": "end",
+   "start": 26,
+   "end": 30,
+   "energy": 0.35,
+   "notes": "Final hit/resolve on A add9 at 26.0, logo chime 26.25, long reverb tail; music fades out by 29.8; last 0.2 s silent."
+  }
+ ],
+ "sfx": [
+  {
+   "t": 0.375,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 0.5938,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 0.7812,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 0.9688,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.125,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.2812,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.4062,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.5312,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.625,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.7188,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.8125,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.9062,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 1.9688,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.0312,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.0938,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.1562,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.2188,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.2812,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.3438,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.4062,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.4688,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.5312,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.5938,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.6562,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.7188,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.7812,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.8438,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 2.9062,
+   "type": "pop",
+   "gain": "very soft",
+   "note": "icon appears (intro clutter)"
+  },
+  {
+   "t": 3.0,
+   "type": "riser",
+   "until": 4.0
+  },
+  {
+   "t": 3.25,
+   "type": "reverse-swell",
+   "until": 4.0
+  },
+  {
+   "t": 4.0,
+   "type": "impact",
+   "note": "big hit, icons start flying"
+  },
+  {
+   "t": 4.0,
+   "type": "whoosh",
+   "until": 4.6,
+   "note": "icons fly into the fences"
+  },
+  {
+   "t": 5.0,
+   "type": "shimmer",
+   "until": 6.0,
+   "note": "light sweeps across, dark wallpaper turns light"
+  },
+  {
+   "t": 7.7,
+   "type": "whoosh",
+   "until": 8.05,
+   "note": "camera move to the auto-sort shot"
+  },
+  {
+   "t": 8.75,
+   "type": "land",
+   "note": "new file lands (Form study.png)"
+  },
+  {
+   "t": 9.5,
+   "type": "land",
+   "note": "new file lands (Launch checklist.md)"
+  },
+  {
+   "t": 10.25,
+   "type": "land",
+   "note": "new file lands (Sol study.png)"
+  },
+  {
+   "t": 11.0,
+   "type": "land",
+   "note": "new file lands (Q3 report.pdf)"
+  },
+  {
+   "t": 11.7,
+   "type": "whoosh",
+   "until": 12.05,
+   "note": "swipe to tabs shot"
+  },
+  {
+   "t": 12.35,
+   "type": "whoosh-short",
+   "until": 12.5
+  },
+  {
+   "t": 12.5,
+   "type": "snap",
+   "note": "Inspiration docks into Projects as a tab"
+  },
+  {
+   "t": 14.0,
+   "type": "click",
+   "note": "tab switch"
+  },
+  {
+   "t": 15.0,
+   "type": "click",
+   "note": "tab switch"
+  },
+  {
+   "t": 15.5,
+   "type": "downlifter",
+   "until": 16.0
+  },
+  {
+   "t": 16.25,
+   "type": "ui-open",
+   "note": "agent card slides in"
+  },
+  {
+   "t": 16.45,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.4972,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.5427,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.5945,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.6547,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.7052,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.7513,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.8075,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.8755,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.9461,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 16.995,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.0625,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.1285,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.1951,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.2616,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.3249,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.376,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.439,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.4976,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.5474,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.6187,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.6674,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.7221,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.7746,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.8297,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.8874,
+   "type": "key",
+   "gain": "soft"
+  },
+  {
+   "t": 17.95,
+   "type": "enter",
+   "note": "prompt submitted"
+  },
+  {
+   "t": 18.0,
+   "type": "tick",
+   "note": "command: fence create -> Docs fence appears"
+  },
+  {
+   "t": 18.0,
+   "type": "pop",
+   "gain": "medium",
+   "note": "Docs fence appears"
+  },
+  {
+   "t": 18.5,
+   "type": "tick",
+   "note": "command: autoHeight"
+  },
+  {
+   "t": 19.0,
+   "type": "tick",
+   "note": "command: rule add"
+  },
+  {
+   "t": 19.4,
+   "type": "tick",
+   "note": "command: rule apply"
+  },
+  {
+   "t": 19.4,
+   "type": "swoosh",
+   "note": "PDF moves Desktop -> Docs"
+  },
+  {
+   "t": 19.45,
+   "type": "swoosh",
+   "note": "PDF moves Desktop -> Docs"
+  },
+  {
+   "t": 19.5,
+   "type": "swoosh",
+   "note": "PDF moves Desktop -> Docs"
+  },
+  {
+   "t": 19.55,
+   "type": "swoosh",
+   "note": "PDF moves Desktop -> Docs"
+  },
+  {
+   "t": 19.0,
+   "type": "riser",
+   "until": 20.0
+  },
+  {
+   "t": 19.0,
+   "type": "snare-roll",
+   "until": 19.94
+  },
+  {
+   "t": 20.0,
+   "type": "impact",
+   "note": "THE DROP: every fence grows"
+  },
+  {
+   "t": 22.0,
+   "type": "shimmer",
+   "until": 23.0,
+   "note": "tint washes over the glass"
+  },
+  {
+   "t": 25.7,
+   "type": "whoosh",
+   "until": 26.0,
+   "note": "transition to end card"
+  },
+  {
+   "t": 26.0,
+   "type": "impact-soft",
+   "note": "end card"
+  },
+  {
+   "t": 26.25,
+   "type": "chime",
+   "note": "logo appears"
+  }
+ ],
+ "prompt": {
+  "text": "Put my PDFs in a Docs fence, make the icons bigger and give every fence a warm tint.",
+  "typeStart": 16.45,
+  "typeEnd": 17.9,
+  "submit": 17.95
+ },
+ "commands": [
+  {
+   "t": 18.0,
+   "cmd": "pecofence-cli fence create --title Docs",
+   "native": 4.783
+  },
+  {
+   "t": 18.5,
+   "cmd": "pecofence-cli fence set Docs autoHeight true",
+   "native": 5.917
+  },
+  {
+   "t": 19.0,
+   "cmd": "pecofence-cli rule add --name PDFs --ext pdf --to Docs",
+   "native": 7.3
+  },
+  {
+   "t": 19.4,
+   "cmd": "pecofence-cli rule apply",
+   "native": 8.183,
+   "result": "moved 4 files to Docs"
+  },
+  {
+   "t": 19.95,
+   "cmd": "pecofence-cli fence set --all iconSize 96",
+   "native": 10.733
+  },
+  {
+   "t": 21.95,
+   "cmd": "pecofence-cli fence set --all tint \"#E86A5C\"",
+   "native": 13.2
+  }
+ ]
+}

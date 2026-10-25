@@ -1,0 +1,364 @@
+/* PecoFence manual: miniature of the settings window (ui/settings.html, light theme) shared by
+   the settings lessons (rules, look, backup), plus the fence variants of the look lesson.
+   Everything is prefixed set- so it cannot clash with other demos. Sizes are the real page's
+   scaled down to stay legible on the 800 x 450 stage. */
+
+.set-win {
+    left: 0;
+    top: 0;
+    border-radius: 8px;
+    background: #f3f3f3;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .12), 0 18px 40px rgba(38, 30, 70, .24), 0 4px 12px rgba(38, 30, 70, .12);
+    overflow: hidden;
+    color: #1b1b1b;
+    font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    transform-origin: 50% 50%;
+    z-index: 2;
+}
+
+.set-ic {
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets";
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.set-noic .set-ic { display: none }
+
+/* caption: same colour as the sheet (apply_caption), drawn fence glyph + title */
+
+.set-cap { left: 0; right: 0; top: 0; height: 30px }
+.set-cap img { left: 11px; top: 8px; width: 14px; height: 14px }
+.set-cap-t { left: 33px; top: 0; font-size: 11px; line-height: 30px; white-space: nowrap }
+.set-capb { top: 0; width: 38px; height: 30px }
+.set-capb svg { left: 14px; top: 10px; width: 10px; height: 10px }
+
+/* navigation */
+
+.set-nav { left: 0; top: 30px; bottom: 0 }
+.set-brand-m { left: 14px; top: 7px; width: 16px; height: 16px }
+.set-brand-t { left: 38px; top: 7px; font-size: 12px; font-weight: 600; line-height: 16px; white-space: nowrap }
+.set-nav-i {
+    left: 6px;
+    right: 6px;
+    height: 26px;
+    border-radius: 4px;
+}
+.set-nav-i.hot { background: rgba(0, 0, 0, .037) }
+.set-nav-i.sel { background: rgba(0, 0, 0, .037) }
+.set-nav-i .set-ic { left: 10px; top: 7px; font-size: 12px }
+.set-nav-i .set-nav-t { left: 32px; top: 0; font-size: 11.5px; line-height: 26px; white-space: nowrap }
+.set-nav-i .set-nav-t.fit { right: 6px; overflow: hidden; text-overflow: ellipsis }
+.set-nav-pill {
+    left: 0;
+    top: 7px;
+    width: 3px;
+    height: 12px;
+    border-radius: 2px;
+    background: #005fb8;
+}
+.set-nav-foot { left: 14px; bottom: 10px; color: #8a8a8a; font-size: 9.5px; line-height: 12px; white-space: nowrap }
+.set-nav-foot.fit { right: 8px; overflow: hidden; text-overflow: ellipsis }
+
+/* content */
+
+.set-main { top: 30px; bottom: 0; right: 0; overflow: hidden }
+.set-page { left: 0; top: 0; right: 0; height: 2000px }
+
+.set-h2 {
+    left: 2px;
+    right: 14px;            /* long translated page titles ellipsize inside the page */
+    font: 600 19px/26px "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.set-h3 { left: 2px; padding-top: 8px; font-size: 11.5px; font-weight: 600; line-height: 15px; white-space: nowrap }
+
+.set-card {
+    left: 0;
+    border-radius: 4px;
+    background: #fbfbfb;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.set-lg .set-card { border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06), inset 0 1px 0 rgba(255, 255, 255, .9) }
+.set-card > .set-ic { left: 12px; font-size: 13px; color: #1b1b1b }
+.set-t, .set-s { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.set-t { font-size: 11.5px; line-height: 15px }
+.set-s { color: #5d5d5d; font-size: 9.5px; line-height: 13px }
+
+/* controls */
+
+.set-sel, .set-btn, .set-inp {
+    height: 22px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .7);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06), inset 0 -1px 0 rgba(0, 0, 0, .16);
+    font-size: 11px;
+    line-height: 22px;
+    white-space: nowrap;
+}
+.set-lg .set-sel, .set-lg .set-btn, .set-lg .set-inp { border-radius: 6px }
+.set-sel.hot, .set-btn.hot { background: rgba(249, 249, 249, .5) }
+.set-sel.down, .set-btn.down { background: rgba(249, 249, 249, .3); color: #5d5d5d }
+.set-sel .set-v { left: 8px; right: 24px; top: 0; overflow: hidden; text-overflow: ellipsis }
+.set-sel svg { right: 7px; top: 5px; width: 12px; height: 12px }
+.set-btn .set-v { left: 0; right: 0; top: 0; text-align: center }
+.set-btn.acc { background: #005fb8; color: #fff; box-shadow: none }
+.set-btn.acc.hot { background: rgba(0, 95, 184, .9) }
+.set-btn.acc.down { background: rgba(0, 95, 184, .8); color: rgba(255, 255, 255, .8) }
+.set-inp .set-v { left: 8px; top: 0; max-width: calc(100% - 14px); overflow: hidden }
+.set-inp .set-v.ph { color: #8a8a8a }
+.set-inp.focus { background: #fff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06), inset 0 -2px 0 #005fb8 }
+.set-caret { top: 5px; width: 1px; height: 12px; background: #1b1b1b }
+
+.set-tog-l { top: 0; right: 40px; font-size: 10.5px; line-height: 15px; white-space: nowrap }
+.set-tog {
+    right: 0;
+    top: 0;
+    width: 30px;
+    height: 15px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px #8a8a8a;
+    background: rgba(0, 0, 0, .024);
+}
+.set-tog::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #5d5d5d;
+}
+.set-tog.on { background: #005fb8; box-shadow: none }
+.set-tog.on::after { left: 18px; background: #fff }
+
+.set-sw {
+    top: 0;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15);
+}
+.set-sw.none { background: rgba(255, 255, 255, .7); box-shadow: inset 0 0 0 1px #8a8a8a }
+.set-sw.none::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 2px;
+    width: 1.2px;
+    height: 11px;
+    background: #5d5d5d;
+    transform: rotate(45deg);
+}
+.set-sw.on { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15), 0 0 0 1.5px #fbfbfb, 0 0 0 3px #1b1b1b }
+
+.set-ibtn { top: 0; width: 20px; height: 20px; border-radius: 4px }
+.set-ibtn svg { left: 5px; top: 5px; width: 10px; height: 10px }
+.set-ibtn.hot { background: rgba(0, 0, 0, .037) }
+.set-ibtn.off svg { opacity: .35 }
+
+/* dropdown list of a <select> (Chromium popup) */
+
+.set-pop {
+    left: 0;
+    top: 0;
+    padding: 4px 0;
+    border-radius: 6px;
+    background: #fdfdfd;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .1), 0 8px 18px rgba(0, 0, 0, .16);
+    overflow: hidden;
+    font-size: 11px;
+    z-index: 4;
+}
+.set-pop-i { left: 4px; right: 4px; height: 22px; border-radius: 4px; padding-left: 8px; line-height: 22px; white-space: nowrap }
+.set-pop-i span { position: static }
+.set-pop-i.cur { background: rgba(0, 0, 0, .05) }
+.set-pop-i.cur::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 3px;
+    height: 10px;
+    border-radius: 2px;
+    background: #005fb8;
+}
+.set-pop-i.hot { background: rgba(0, 0, 0, .075) }
+.set-pop-bar { right: 2px; top: 6px; width: 3px; border-radius: 2px; background: rgba(0, 0, 0, .3) }
+
+/* infobar (toast) */
+
+.set-toast {
+    top: 0;
+    height: 30px;
+    padding: 0 12px 0 30px;
+    border-radius: 4px;
+    background: #dff6dd;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06), 0 8px 16px rgba(0, 0, 0, .14);
+    font-size: 11px;
+    line-height: 30px;
+    white-space: nowrap;
+    z-index: 3;
+}
+.set-toast span { position: static }
+.set-toast svg { left: 11px; top: 9px; width: 12px; height: 12px }
+
+/* theme style tiles (常规 → 主题风格): the page's own preview of the two materials */
+
+.set-tile {
+    top: 0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, .7);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.set-tile.hot { background: rgba(249, 249, 249, .5) }
+.set-tile.on { box-shadow: inset 0 0 0 1px #005fb8, inset 0 0 0 2px #005fb8 }
+.set-shot {
+    left: 6px;
+    right: 6px;
+    top: 6px;
+    height: 62px;
+    border-radius: 4px;
+    overflow: hidden;
+    background:
+        repeating-linear-gradient(0deg, transparent 0 15px, rgba(255, 255, 255, .05) 15px 16px),
+        repeating-linear-gradient(90deg, transparent 0 15px, rgba(255, 255, 255, .05) 15px 16px),
+        radial-gradient(120% 110% at 12% 0%, #a9c3f3 0%, transparent 58%),
+        radial-gradient(90% 110% at 100% 100%, #f1c3b3 0%, transparent 55%),
+        linear-gradient(160deg, #c3d3f5, #e9eefb);
+}
+.set-mini {
+    left: 13%;
+    right: 13%;
+    top: 11px;
+    height: 40px;
+}
+.set-mini.fl {
+    border-radius: 6px;
+    background: rgba(243, 243, 243, .72);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    backdrop-filter: blur(10px) saturate(1.2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55), 0 6px 12px rgba(0, 0, 0, .18);
+}
+.set-mini.lg {
+    border-radius: 11px;
+    box-shadow: 0 8px 14px -6px rgba(21, 22, 34, .31), 0 2px 4px -1px rgba(21, 22, 34, .14),
+        inset 1px 2px 3px rgba(255, 255, 255, .31), inset -1px -2px 4px rgba(56, 58, 71, .11), inset 0 -1px 1px rgba(255, 255, 255, .44);
+}
+.set-mini.lg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(145deg, #fffffff5, #ffffff25 36%, #53566338 58%, #ffffffcc 88%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+.set-mini-t { left: 8px; top: 3px; font-size: 8.5px; font-weight: 600; line-height: 11px; white-space: nowrap }
+.set-mini-i {
+    top: 18px;
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+    background: #749cca;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .36);
+    color: #eef7ff;
+    font-size: 8px;
+    line-height: 15px;
+    text-align: center;
+}
+.set-mini-i.folder { background: #d1ac65 }
+.set-mini-i.sheet { background: #689d88 }
+.set-cap-r {
+    left: 8px;
+    top: 74px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px #8a8a8a;
+    background: rgba(0, 0, 0, .024);
+}
+.set-tile.on .set-cap-r { box-shadow: inset 0 0 0 3.5px #005fb8; background: #fff }
+.set-tile-t { left: 24px; right: 6px; top: 72px; font-size: 10.5px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+/* checkbox (新建规则 → 文件类型) */
+
+.set-chk { top: 0; font-size: 10.5px; line-height: 13px; white-space: nowrap }
+.set-chk i {
+    left: 0;
+    top: 1px;
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px #8a8a8a;
+    background: rgba(0, 0, 0, .024);
+}
+.set-chk span { left: 16px; top: 0 }
+.set-lbl { color: #5d5d5d; font-size: 9.5px; line-height: 12px; white-space: nowrap }
+.set-num { color: #8a8a8a; font-size: 9.5px; line-height: 13px; width: 14px; text-align: center }
+.set-chev { width: 10px; height: 10px; font-size: 9px; line-height: 10px; text-align: center; color: #5d5d5d; transform-origin: 50% 50% }
+
+/* the look lesson's fence: plates as children so they can fade under the title and icons */
+
+.fence.set-f {
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+}
+.set-pf {
+    inset: 0;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .44), rgba(246, 243, 251, .34));
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, .62),
+        inset 0 1px 0 rgba(255, 255, 255, .9),
+        0 0 0 .5px rgba(70, 58, 110, .2),
+        0 10px 26px rgba(66, 46, 104, .15);
+}
+/* Liquid Glass: clear centre, a refracting rim, bright thin highlight ring and soft shadow */
+.set-plg {
+    inset: 0;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .04);
+    box-shadow: 0 14px 26px -10px rgba(21, 22, 34, .34), 0 3px 7px -2px rgba(21, 22, 34, .16);
+}
+.set-plg-rim {
+    inset: 0;
+    border-radius: 16px;
+    padding: 9px;
+    -webkit-backdrop-filter: blur(1.6px) saturate(1.9) brightness(1.06);
+    backdrop-filter: blur(1.6px) saturate(1.9) brightness(1.06);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+.set-plg-hi {
+    inset: 0;
+    border-radius: 16px;
+    box-shadow: inset 1px 2px 3px rgba(255, 255, 255, .55), inset -1px -2px 5px rgba(56, 58, 71, .12), inset 0 -1px 1px rgba(255, 255, 255, .7);
+}
+.set-plg-hi::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.2px;
+    background: linear-gradient(145deg, #fffffff8, #ffffff30 36%, #53566340 58%, #ffffffdd 88%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+.set-tint { left: 0; top: 0; right: 0; bottom: 0; border-radius: 16px }
+.set-tint.set-tint-top { bottom: auto; height: 32px; border-radius: 16px 16px 0 0 }
+.fence.set-f .f-name { transform-origin: 0 50% }
+.fence.set-f.set-bare .f-name { text-shadow: 0 0 2px #fff, 0 0 4px rgba(255, 255, 255, .9), 0 0 1px #fff }
+.fence.set-f.set-bare .ico span { text-shadow: 0 0 2px #fff, 0 0 5px rgba(255, 255, 255, .95) }
