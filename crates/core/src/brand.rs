@@ -9,7 +9,7 @@ pub const NAME: &str = "PecoFence";
 pub const DISPLAY_NAME: &str = "Nodra";
 /// Microsoft Store product id (Partner Center, packaging/msix/identity.json).
 pub const STORE_PRODUCT_ID: &str = "9MV6WG3XNWSX";
-pub const REPOSITORY_URL: &str = "https://github.com/ZeroTh12/Nodra";
+pub const REPOSITORY_URL: &str = "https://github.com/ZeroTh12/Nodra1";
 pub const LEGACY_DATA_DIR: &str = "OpenFence";
 pub const LEGACY_AUTOSTART: &str = "openFence";
 

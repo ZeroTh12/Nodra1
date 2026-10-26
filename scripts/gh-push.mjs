@@ -28,6 +28,7 @@ const result = await git.push({
   dir,
   remote: 'origin',
   ref: branch,
+  remoteRef: 'main',
   onAuth: () => ({ username: user, password: token }),
 });
 for (const [ref, ok] of Object.entries(result.refs ?? {})) {

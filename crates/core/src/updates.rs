@@ -5,7 +5,7 @@
 use serde::Deserialize;
 
 // The Nodra community build's own repository.
-pub const REPOSITORY: &str = "ZeroTh12/Nodra";
+pub const REPOSITORY: &str = "ZeroTh12/Nodra1";
 
 /// GitHub's newest published release; drafts and prereleases are never "latest".
 pub fn latest_release_url() -> String {
