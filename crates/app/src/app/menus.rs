@@ -51,6 +51,8 @@ const CMD_FENCE_OPTIONS: u32 = 331;
 const CMD_FENCE_NEW_FOLDER: u32 = 340;
 const CMD_FENCE_NEW_TEXT: u32 = 341;
 const CMD_FENCE_PASTE: u32 = 342;
+/// 形状 submenu: base + `FenceShape` (0 = 跟随主题, 1 = 大圆角, 2 = 超大圆角, 3 = 胶囊).
+const CMD_FENCE_SHAPE: u32 = 344;
 const CMD_FENCE_VIEW_ICONS: u32 = 360;
 const CMD_FENCE_VIEW_LIST: u32 = 361;
 const CMD_FENCE_VIEW_DETAILS: u32 = 362;
@@ -204,7 +206,7 @@ impl App {
             .separator()
             .item(
                 CMD_EXIT,
-                pecofence_core::i18n::text("退出 PecoFence"),
+                pecofence_core::i18n::text("退出 Nodra"),
                 false,
                 false,
             )
@@ -699,6 +701,26 @@ impl App {
             menu.submenu(pecofence_core::i18n::text("标签页"), tab_menu)
                 .icon(glyph::TAB);
         }
+        let host_shape = h.appearance.as_ref().map(|a| a.shape).unwrap_or_default();
+        let shape_menu = PopupMenu::new();
+        for (i, (label, shape)) in [
+            ("跟随主题", pecofence_core::FenceShape::Theme),
+            ("大圆角", pecofence_core::FenceShape::Round),
+            ("超大圆角", pecofence_core::FenceShape::ExtraRound),
+            ("胶囊", pecofence_core::FenceShape::Capsule),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            shape_menu.item(
+                CMD_FENCE_SHAPE + i as u32,
+                pecofence_core::i18n::text(label),
+                host_shape == shape,
+                false,
+            );
+        }
+        menu.submenu(pecofence_core::i18n::text("形状"), shape_menu)
+            .icon(glyph::VIEW);
         menu.item(
             CMD_FENCE_LOCK,
             if h.locked {
@@ -875,6 +897,15 @@ impl App {
                 self.schedule_save();
             }
             CMD_FENCE_LOCK => self.set_fence_locked(host, !h.locked),
+            c if (CMD_FENCE_SHAPE..CMD_FENCE_SHAPE + 4).contains(&c) => {
+                let shape = match c - CMD_FENCE_SHAPE {
+                    1 => pecofence_core::FenceShape::Round,
+                    2 => pecofence_core::FenceShape::ExtraRound,
+                    3 => pecofence_core::FenceShape::Capsule,
+                    _ => pecofence_core::FenceShape::Theme,
+                };
+                self.set_fence_shape(fence, shape);
+            }
             CMD_FENCE_OPTIONS => self.open_fence_options(fence),
             CMD_FENCE_NEW => {
                 let rect = self.place_new_fence(3, 200.0, x, y, Some(host));

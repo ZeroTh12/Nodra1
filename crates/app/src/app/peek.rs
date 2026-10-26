@@ -110,7 +110,7 @@ impl App {
                             && let Some(t) = &self.tray
                         {
                             t.show_info(
-                                "PecoFence",
+                                "Nodra",
                                 &pecofence_core::i18n::format(
                                     "快捷键 {0} 已被系统或其他程序占用，“速览栅栏”改用 {1}。",
                                     &[peek_hotkey_label(h), peek_hotkey_label(c)],
@@ -126,7 +126,7 @@ impl App {
                         && let Some(t) = &self.tray
                     {
                         t.show_info(
-                            "PecoFence",
+                            "Nodra",
                             pecofence_core::i18n::text(
                                 "“速览栅栏”的快捷键都被占用了，请从托盘菜单使用。",
                             ),

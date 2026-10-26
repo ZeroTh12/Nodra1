@@ -45,6 +45,13 @@ pub(super) const TIMER_TAB_HOVER: usize = 45;
 /// Polls the right button during a title drag in the system move loop: the loop sends
 /// WM_MOVING only while the pointer moves, so a right click on a resting pointer went unseen.
 pub(super) const TIMER_MOVE_RBUTTON: usize = 46;
+/// Settles the cell grid after the system size loop throttled its re-layout (`nc::on_size`):
+/// the edge follows the pointer every message, the grid catches up between them.
+pub(super) const TIMER_RESIZE_SETTLE: usize = 47;
+/// Minimum spacing between two cell-grid re-layouts while the user drags a fence's edge. The
+/// chrome (plate, rim, clip) still follows every WM_SIZE, so the frame keeps up with the
+/// pointer; only the content re-flow waits one beat.
+pub(super) const RESIZE_CONTENT_MS: u128 = 60;
 /// DWM can suspend completion callbacks for fully occluded windows. UI state must still
 /// settle after the longest (250 ms) transition, independently of compositor visibility.
 pub(super) const COMPOSITION_FINISH_MS: u32 = 400;

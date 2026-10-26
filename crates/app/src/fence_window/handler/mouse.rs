@@ -224,16 +224,16 @@ pub(super) fn on_lbuttondown(
         let mut capture = false;
         match hit {
             Some(i) => {
-                // Explorer: a plain press keeps a multi-selection for
-                // dragging and collapses it on a release without a drag; a
-                // press on the sole selected item may become a slow
-                // double-click rename.
+                // A plain press selects nothing (the hover plate is the highlight) and clears
+                // the selection on release; Ctrl / Shift still select, and a plain press on a
+                // selected item keeps its set for dragging. A press on the sole selected item
+                // may become a slow double-click rename.
                 let press = press_item(&mut v.selected, &mut v.range_anchor, i, shift, ctrl);
                 v.anchor_index = Some(i);
                 v.drag = Some(DragState {
                     start: (x, y),
                     item: i,
-                    collapse_on_up: press.collapse_on_up,
+                    clear_on_up: press.clear_on_up,
                     was_sole_selected: press.was_sole_selected,
                     deselect_on_up: press.deselect_on_up,
                 });
@@ -463,20 +463,7 @@ pub(super) fn on_lbuttonup(
     }
     // A press that never became a drag (drags end inside the OLE loop).
     if let Some(d) = drag {
-        if d.collapse_on_up {
-            v.select_only(d.item);
-            need_content = true;
-        } else if d.deselect_on_up {
-            release_item(
-                &mut v.selected,
-                d.item,
-                ItemPress {
-                    deselect_on_up: true,
-                    ..Default::default()
-                },
-            );
-            need_content = true;
-        } else if d.was_sole_selected
+        if d.was_sole_selected
             && v.selected.len() == 1
             && v.selected.contains(&d.item)
             && v.label_hit(x, y, d.item)
@@ -491,6 +478,24 @@ pub(super) fn on_lbuttonup(
                 TIMER_RENAME,
                 pecofence_platform::rawinput::double_click_time_ms(),
             );
+        }
+        if d.clear_on_up {
+            // A plain click is no selection: it leaves the hover plate as the only highlight.
+            if !v.selected.is_empty() {
+                v.selected.clear();
+                v.anchor_index = None;
+                need_content = true;
+            }
+        } else if d.deselect_on_up {
+            release_item(
+                &mut v.selected,
+                d.item,
+                ItemPress {
+                    deselect_on_up: true,
+                    ..Default::default()
+                },
+            );
+            need_content = true;
         }
     }
     if need_content && !v.rolled_up {

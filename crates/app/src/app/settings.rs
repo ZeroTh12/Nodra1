@@ -151,7 +151,7 @@ impl App {
         );
         match pecofence_platform::filedialog::save_json(
             owner,
-            pecofence_core::i18n::text("导出 PecoFence 配置"),
+            pecofence_core::i18n::text("导出 Nodra 配置"),
             &name,
         ) {
             Ok(Some(path)) => {
@@ -179,7 +179,7 @@ impl App {
         let owner = self.settings.as_ref().map(|h| h.hwnd());
         match pecofence_platform::filedialog::open_json(
             owner,
-            pecofence_core::i18n::text("导入 PecoFence 配置"),
+            pecofence_core::i18n::text("导入 Nodra 配置"),
         ) {
             Ok(Some(path)) => self.restore_from_file(&path, ConfigSource::Import),
             Ok(None) => {}
@@ -640,7 +640,6 @@ impl App {
                 Some("repairIcons") => self.set_desktop_icons_hidden(false),
                 Some("hideDesktopIcons") => self.set_desktop_icons_hidden(true),
                 Some("rateInStore") => self.open_store_rating(),
-                Some("openManual") => self.open_manual(),
                 Some("openRepository") => {
                     let url = pecofence_core::brand::REPOSITORY_URL;
                     let _ = shell::shell_execute(std::path::Path::new(url), None, None);

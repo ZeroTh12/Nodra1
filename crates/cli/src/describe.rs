@@ -318,7 +318,7 @@ pub const COMMANDS: &[Entry] = &[
     entry!(
         "paths",
         None,
-        "Where PecoFence keeps config.json, backups, the log and crash dumps (offline; asks a running instance first)",
+        "Where Nodra keeps config.json, backups, the log and crash dumps (offline; asks a running instance first)",
         "pecofence-cli paths"
     ),
 ];
@@ -330,7 +330,7 @@ const EXTRA_METHODS: &[&str] = &["fences.moveToMonitor", "items.planMove"];
 pub const ERROR_CODES: &[(ErrorCode, &str)] = &[
     (
         ErrorCode::NotRunning,
-        "No PecoFence instance is listening (exit 3)",
+        "No Nodra instance is listening (exit 3)",
     ),
     (
         ErrorCode::Timeout,
@@ -405,7 +405,7 @@ pub const NOTES: &[&str] = &[
     "Shell quoting: values starting with #, [ or * or containing spaces need quotes (Git Bash treats #ff8800 as a comment): fence set Work tint \"#ff8800\" or tint '\"#ff8800\"'. Negative numbers work bare: fence move Work --x -1800.",
     "Geometry: a hosted tab reports its host's rect and windowRect null. fence get .fit {columns, rows, fittingHeight, overflow} says whether the items fit (fence fit applies fittingHeight). When the app changes a rect on its own (autoHeight after setBounds; iconSize/spacing/layout/labelLines snapping to whole columns and rows) the reply carries adjusted {requested, applied, reason}.",
     "Settings paths are dotted camelCase (peek.enabled, peek.customHotkey (\"Ctrl+Shift+F\"), quickHide.enabled, rollUp.hoverPeek, snapping.gapPx, iconSize, theme, themeStyle, customTheme (a theme file in the themes folder next to config.json, by name; null = the built-in style), hideRealIcons, autostart, icons.chameleon); see describe --schema Settings.",
-    "fence set props: title (or fence rename), iconSize 32|48|64|96, spacing compact|normal|loose, autoHeight, locked, excludeFromQuickHide, opacity default|clear|solid|transparent, tint \"#RRGGBB\"|null, tintTitleOnly (the tint washes only the title row), tabColor \"#RRGGBB\"|null (the bar under a tab; null = its tint), titleColor theme|tint|white|black|\"#RRGGBB\", titleSize small|normal|large|extraLarge, titleOnHover default|hover|always (default follows rollUp.titleOnHover), layout icons|list|details, sort manual|name|type|date|size|openCount, reverse, groupByDate, labelLines, portalNavigate, portalTitleIcon, hideWhenEmpty (inbox only: no window while it is empty). --string keeps numeric-looking text (title 2024) a string.",
+    "fence set props: title (or fence rename), iconSize 32|48|64|96, spacing compact|normal|loose, autoHeight, locked, excludeFromQuickHide, opacity default|clear|solid|transparent, tint \"#RRGGBB\"|null, tintTitleOnly (the tint washes only the title row), tabColor \"#RRGGBB\"|null (the bar under a tab; null = its tint), titleColor theme|tint|white|black|\"#RRGGBB\", titleSize small|normal|large|extraLarge, titleOnHover default|hover|always (default follows rollUp.titleOnHover), layout icons|list|details, sort manual|name|type|date|size|openCount, reverse, groupByDate, labelLines, shape theme|round|extraRound|capsule (the fence's silhouette), portalNavigate, portalTitleIcon, hideWhenEmpty (inbox only: no window while it is empty). --string keeps numeric-looking text (title 2024) a string.",
     "The app must be running; the CLI never edits config.json. --instance <name> only addresses a test instance started with PECOFENCE_INSTANCE=<name>. Offline exceptions: describe, skill, paths, log, config check.",
     "watch streams one EventDto per line (describe --schema EventDto) and never returns by itself; use --once from scripts (wait for one event, then run a batch such as item list + item move). Heartbeats every 30 s are hidden unless --heartbeat. item list carries kind/ext/size/modified/created/openCount/lastOpened/shortcutTarget so most items can be sorted without opening them. items.move of 20+ desktop items takes an automatic snapshot (snapshotId); with a portal on either side it replies fileMove: true and the files arrive a moment later; names that already exist at the destination are skipped (skipped[], warning) instead of opening Explorer's replace dialog.",
 ];
@@ -433,7 +433,7 @@ pub fn catalog() -> Value {
             "0": "success",
             "1": "the app returned an error, or part of a batch failed",
             "2": "usage error (clap message on stderr, or code usage)",
-            "3": "PecoFence is not running",
+            "3": "Nodra is not running",
             "4": "timeout waiting for the app",
         },
         "errorCodes": error_codes,

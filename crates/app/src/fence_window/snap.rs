@@ -347,7 +347,7 @@ pub(super) fn size_among(
     if !n.align {
         return Vec::new();
     }
-    alignment_guides(rect, n.others, None, i32::MAX / 4)
+    let mut guides: Vec<GuideLine> = alignment_guides(rect, n.others, None, i32::MAX / 4)
         .into_iter()
         .filter(|g| {
             if g.vertical {
@@ -356,7 +356,61 @@ pub(super) fn size_among(
                 (edges.bottom && g.at == rect.bottom) || (edges.top && g.at == rect.top)
             }
         })
-        .collect()
+        .collect();
+    gap_stop_guides(rect, n.others, n.gap, n.dist, edges, &mut guides);
+    guides
+}
+
+/// Adds a guide for every dragged edge that ended exactly `gap` from a nearby fence's parallel
+/// edge: the line lies on the dragged edge itself, so the stop (which the edge cannot pass) is
+/// visible at the outermost edge instead of the edge appearing stuck for no reason.
+fn gap_stop_guides(
+    rect: &RECT,
+    others: &[RECT],
+    gap: i32,
+    dist: i32,
+    edges: SizingEdges,
+    lines: &mut Vec<GuideLine>,
+) {
+    for o in others {
+        if rect.top < o.bottom + dist && rect.bottom > o.top - dist {
+            let (from, to) = (rect.top.min(o.top), rect.bottom.max(o.bottom));
+            if edges.right && rect.right == o.left - gap {
+                push_guide(lines, true, rect.right, from, to);
+            }
+            if edges.left && rect.left == o.right + gap {
+                push_guide(lines, true, rect.left, from, to);
+            }
+        }
+        if rect.left < o.right + dist && rect.right > o.left - dist {
+            let (from, to) = (rect.left.min(o.left), rect.right.max(o.right));
+            if edges.bottom && rect.bottom == o.top - gap {
+                push_guide(lines, false, rect.bottom, from, to);
+            }
+            if edges.top && rect.top == o.bottom + gap {
+                push_guide(lines, false, rect.top, from, to);
+            }
+        }
+    }
+}
+
+/// Appends a guide line, lengthening an existing one on the same line.
+fn push_guide(lines: &mut Vec<GuideLine>, vertical: bool, at: i32, from: i32, to: i32) {
+    match lines
+        .iter_mut()
+        .find(|g| g.vertical == vertical && g.at == at)
+    {
+        Some(g) => {
+            g.from = g.from.min(from);
+            g.to = g.to.max(to);
+        }
+        None => lines.push(GuideLine {
+            vertical,
+            at,
+            from,
+            to,
+        }),
+    }
 }
 
 /// Where a dragged edge goes: `anchor` is the opposite edge, `edge` the pointer's, `sign` +1 for
@@ -422,27 +476,12 @@ pub(super) fn alignment_guides(
     dist: i32,
 ) -> Vec<GuideLine> {
     let mut lines: Vec<GuideLine> = Vec::new();
-    let mut add = |vertical: bool, at: i32, from: i32, to: i32| match lines
-        .iter_mut()
-        .find(|g| g.vertical == vertical && g.at == at)
-    {
-        Some(g) => {
-            g.from = g.from.min(from);
-            g.to = g.to.max(to);
-        }
-        None => lines.push(GuideLine {
-            vertical,
-            at,
-            from,
-            to,
-        }),
-    };
     for o in others {
         if rect.top < o.bottom + dist && rect.bottom > o.top - dist {
             let (from, to) = (rect.top.min(o.top), rect.bottom.max(o.bottom));
             for x in [rect.left, rect.right] {
                 if x == o.left || x == o.right {
-                    add(true, x, from, to);
+                    push_guide(&mut lines, true, x, from, to);
                 }
             }
         }
@@ -450,7 +489,7 @@ pub(super) fn alignment_guides(
             let (from, to) = (rect.left.min(o.left), rect.right.max(o.right));
             for y in [rect.top, rect.bottom] {
                 if y == o.top || y == o.bottom {
-                    add(false, y, from, to);
+                    push_guide(&mut lines, false, y, from, to);
                 }
             }
         }
@@ -458,10 +497,10 @@ pub(super) fn alignment_guides(
     if let Some(wa) = work {
         let (cx, cy) = ((wa.left + wa.right) / 2, (wa.top + wa.bottom) / 2);
         if rect.left == cx - (rect.right - rect.left) / 2 {
-            add(true, cx, wa.top, wa.bottom);
+            push_guide(&mut lines, true, cx, wa.top, wa.bottom);
         }
         if rect.top == cy - (rect.bottom - rect.top) / 2 {
-            add(false, cy, wa.left, wa.right);
+            push_guide(&mut lines, false, cy, wa.left, wa.right);
         }
     }
     lines

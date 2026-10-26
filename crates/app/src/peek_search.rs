@@ -125,7 +125,7 @@ pub fn open(text: &str, queue: CommandQueue, dark: bool) {
         let c = c.borrow();
         let class = c.as_ref()?;
         WindowBuilder::new(class)
-            .title("PecoFence search")
+            .title("Nodra search")
             .style(style::POPUP | style::CLIPCHILDREN)
             .ex_style(style::EX_TOOLWINDOW | style::EX_TOPMOST)
             .bounds(x, y, w, h)

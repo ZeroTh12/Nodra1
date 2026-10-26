@@ -105,7 +105,7 @@ impl App {
                 tracing::warn!(error = %e, "creating desktop item failed");
                 if let Some(t) = &self.tray {
                     t.show_info(
-                        "PecoFence",
+                        "Nodra",
                         &pecofence_core::i18n::format("无法在桌面创建项目：{0}", &[e.to_string()]),
                         true,
                     );
@@ -309,7 +309,7 @@ impl App {
             Err(RenameError::Io(e)) => Some(pecofence_core::i18n::format("重命名失败：{0}", &[e])),
         };
         if let (Some(text), Some(t)) = (toast, &self.tray) {
-            t.show_info("PecoFence", &text, true);
+            t.show_info("Nodra", &text, true);
         }
     }
 
@@ -317,7 +317,7 @@ impl App {
     pub(super) fn invalid_name_toast(&self) {
         if let Some(t) = &self.tray {
             t.show_info(
-                "PecoFence",
+                "Nodra",
                 pecofence_core::i18n::text("名称不能为空，也不能包含 \\ / : * ? \" < > |"),
                 true,
             );
@@ -598,23 +598,36 @@ impl App {
         else {
             return;
         };
-        match shell::shell_execute(&path, None, None) {
-            Ok(()) => {
-                self.state.note_opened(item);
-                // A fence sorted by open count reorders; persist lazily with the next save.
-                let sorted: Vec<FenceId> = self
-                    .state
-                    .fences()
-                    .iter()
-                    .filter(|f| f.view.sort == SortMode::OpenCount && f.contains_item(item))
-                    .map(|f| f.id)
-                    .collect();
-                for f in sorted {
-                    self.refresh_fence(f);
+        // The launch goes to a worker thread: even a shell that is busy (Explorer mid-startup,
+        // a network shortcut, an antivirus scanning the target) then cannot hold the UI thread,
+        // which is what made the whole app show "not responding" while a program opened. The
+        // bookkeeping (open count, reorder, save) stays here, so a fence sorted by open count
+        // updates at the click.
+        self.state.note_opened(item);
+        // A fence sorted by open count reorders; persist lazily with the next save.
+        let sorted: Vec<FenceId> = self
+            .state
+            .fences()
+            .iter()
+            .filter(|f| f.view.sort == SortMode::OpenCount && f.contains_item(item))
+            .map(|f| f.id)
+            .collect();
+        for f in sorted {
+            self.refresh_fence(f);
+        }
+        self.schedule_save();
+        let spawned = std::thread::Builder::new()
+            .name("pecofence-launch".into())
+            .spawn(move || {
+                // The shell's file associations are COM objects; a fresh worker owns an
+                // apartment of its own.
+                let _com = pecofence_platform::com::MtaGuard::init();
+                if let Err(error) = shell::shell_execute(&path, None, None) {
+                    tracing::warn!(path = %path.display(), error = %error, "launch failed");
                 }
-                self.schedule_save();
-            }
-            Err(e) => tracing::warn!(path = %path.display(), error = %e, "launch failed"),
+            });
+        if let Err(error) = spawned {
+            tracing::warn!(error = %error, "launch thread failed to start");
         }
     }
 

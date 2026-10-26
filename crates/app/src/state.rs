@@ -901,6 +901,16 @@ impl AppState {
             .iter()
             .flat_map(|f| f.items.iter().map(|r| r.item_id))
             .collect();
+        // The desktop Explorer draws is one merged namespace: a name in the user's Desktop
+        // hides the same name in the Public Desktop. An installer that drops its shortcut
+        // into both folders must not become two fence icons, so the shadowed entry never
+        // reaches the sync below — and a record already kept for it is retired at once
+        // instead of lingering as a second icon until the orphan GC.
+        let shadowed: HashSet<String> = entries
+            .iter()
+            .filter(|e| e.origin == EntryOrigin::UserDesktop)
+            .map(|e| e.file_name.to_lowercase())
+            .collect();
         // Naming new entries one at a time costs several ms each on a OneDrive desktop: a batch
         // of them (first run, an unpacked archive) is named per folder in one go, as
         // `refresh_portal` does.
@@ -908,6 +918,8 @@ impl AppState {
         let mut new_count = 0usize;
         for entry in entries {
             if entry.origin == EntryOrigin::Namespace
+                || (entry.origin == EntryOrigin::PublicDesktop
+                    && shadowed.contains(&entry.file_name.to_lowercase()))
                 || self
                     .catalog
                     .contains_key(&ItemKey::from_path(&entry.path.to_string_lossy()))
@@ -932,6 +944,18 @@ impl AppState {
 
         for entry in entries {
             let key = ItemKey::from_path(&entry.path.to_string_lossy());
+            if entry.origin == EntryOrigin::PublicDesktop
+                && shadowed.contains(&entry.file_name.to_lowercase())
+            {
+                // The twin in the user's Desktop wins: retire the shadowed Public-Desktop
+                // copy's record now, so its icon leaves the fence with this sync instead of
+                // staying for a week as a duplicate until the orphan GC collects it.
+                if let Some(&id) = self.catalog.get(&key) {
+                    self.remove_item_record(id);
+                    report.removed += 1;
+                }
+                continue;
+            }
             let (icon_key, _) =
                 crate::icons::icon_key_for(&entry.path, entry.is_folder, entry.mtime);
             if let Some(&id) = self.catalog.get(&key) {
@@ -1042,18 +1066,41 @@ impl AppState {
                 EntryOrigin::Namespace => Origin::Namespace,
             })
             .collect();
+        // A record missing from the listing whose display name a live item still carries is
+        // the other half of the merged desktop namespace (its twin in the user's or the
+        // Public Desktop survives): retiring it at once keeps a deleted copy from drawing a
+        // second icon in its fence until the orphan GC would collect it a week later.
+        let live_names: HashSet<String> = self
+            .config
+            .items
+            .iter()
+            .filter(|(id, it)| seen.contains(id) && it.orphaned_since.is_none())
+            .map(|(_, it)| it.display_name.to_lowercase())
+            .collect();
         let mut to_remove = Vec::new();
         for (id, item) in self.config.items.iter_mut() {
             if seen.contains(id) || unread.contains(&item.origin) {
                 continue;
             }
+            let twin = live_names.contains(&item.display_name.to_lowercase());
             match item.orphaned_since {
                 None => {
-                    item.orphaned_since = Some(now);
+                    if twin {
+                        to_remove.push(*id);
+                    } else {
+                        item.orphaned_since = Some(now);
+                    }
                     report.removed += 1;
                     self.dirty = true;
                 }
                 Some(since) if now - since > ORPHAN_GC_SECS => to_remove.push(*id),
+                // Already orphaned by an earlier sync (an older build kept it): a twin that
+                // a live item still represents must not keep its second icon either.
+                Some(_) if twin => {
+                    to_remove.push(*id);
+                    report.removed += 1;
+                    self.dirty = true;
+                }
                 Some(_) => {}
             }
         }
@@ -1820,6 +1867,11 @@ impl AppState {
             f.locked = on;
             self.dirty = true;
         }
+    }
+
+    /// 外观 → 形状: the fence's silhouette (default = the theme's corner radius).
+    pub fn set_shape(&mut self, id: FenceId, shape: pecofence_core::FenceShape) {
+        self.edit_appearance(id, |a| a.shape = shape);
     }
 
     pub fn set_exclude_from_quick_hide(&mut self, id: FenceId, on: bool) {
@@ -2901,6 +2953,59 @@ mod tests {
         assert_eq!(report.removed, 1);
         assert!(state.config.items[&shared].orphaned_since.is_none());
         assert!(state.config.items[&mine].orphaned_since.is_some());
+    }
+
+    /// An installer that drops its shortcut into both the user's and the Public Desktop must
+    /// not become two fence icons: the user's copy shadows the Public one, as in Explorer's
+    /// merged desktop namespace.
+    #[test]
+    fn a_public_desktop_copy_shadowed_by_the_users_copy_makes_one_icon() {
+        let mut public = desktop_entry("App.lnk");
+        public.path = PathBuf::from("C:/Users/Public/Desktop/App.lnk");
+        public.origin = EntryOrigin::PublicDesktop;
+        let mut state = test_state();
+        // Both copies listed on one sync: one item, from the user's Desktop.
+        let report = state.sync_desktop(&[desktop_entry("App.lnk"), public.clone()]);
+        assert_eq!(report.added, 1);
+        assert!(state
+            .item_id_for_path(Path::new("C:/Users/Me/Desktop/App.lnk"))
+            .is_some());
+        assert_eq!(state.item_id_for_path(&public.path), None);
+        // A copy already catalogued by an older version is retired by the next sync.
+        let mut state = test_state();
+        state.sync_desktop(&[public.clone()]);
+        let stale = state.item_id_for_path(&public.path).unwrap();
+        let report = state.sync_desktop(&[desktop_entry("App.lnk"), public.clone()]);
+        assert_eq!(report.removed, 1);
+        assert!(!state.config.items.contains_key(&stale));
+        assert!(state.fences().iter().all(|f| !f.contains_item(stale)));
+    }
+
+    /// The Public-Desktop twin was uninstalled: its lingering record must not keep drawing a
+    /// second icon next to the surviving copy until the orphan GC collects it a week later.
+    #[test]
+    fn an_orphaned_record_whose_name_a_live_item_keeps_is_retired_at_once() {
+        let mut public = desktop_entry("App.lnk");
+        public.path = PathBuf::from("C:/Users/Public/Desktop/App.lnk");
+        public.origin = EntryOrigin::PublicDesktop;
+        let mut state = test_state();
+        // Both copies once existed; the record here was made from the Public listing.
+        state.sync_desktop(&[public.clone()]);
+        let stale = state.item_id_for_path(&public.path).unwrap();
+        // The Public copy is deleted; the user's copy survives.
+        let report = state.sync_desktop(&[desktop_entry("App.lnk")]);
+        assert_eq!(report.removed, 1);
+        assert!(!state.config.items.contains_key(&stale));
+        assert!(state.fences().iter().all(|f| !f.contains_item(stale)));
+        // A record already orphaned by an older build is retired by the next sync as well.
+        state.sync_desktop(&[public.clone()]);
+        let stale = state.item_id_for_path(&public.path).unwrap();
+        state.sync_desktop(&[]);
+        assert!(state.config.items[&stale].orphaned_since.is_some());
+        let report = state.sync_desktop(&[desktop_entry("App.lnk")]);
+        assert_eq!(report.removed, 1);
+        assert!(!state.config.items.contains_key(&stale));
+        assert!(state.fences().iter().all(|f| !f.contains_item(stale)));
     }
 
     #[test]

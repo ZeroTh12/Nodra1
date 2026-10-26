@@ -3,7 +3,7 @@ name = "pecofence"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "PecoFence: group your desktop icons into glass fences on Windows 11."
+description = "Nodra: group your desktop icons into glass fences on Windows 11."
 build = "build.rs"
 
 [[bin]]

@@ -253,6 +253,8 @@ impl FenceWindow {
             opacity: 1.0,
             title_on_hover_override: None,
             style: FenceStyle::default(),
+            shape: FenceShape::Theme,
+            shadow_base: ctx.shadow_style.get(),
             spacing: Spacing::Normal,
             anchor_index: None,
             range_anchor: None,
@@ -284,6 +286,8 @@ impl FenceWindow {
             plate_alpha: 1.0,
             peeking: false,
             behavior: ctx.behavior.clone(),
+            resize_content_at: None,
+            resize_pending: None,
         };
         if rolled_up {
             let th = state.title_h_px();
@@ -1720,7 +1724,9 @@ impl FenceWindow {
     /// the drop outline), drawn with its shadow.
     pub fn set_group_selected(&self, on: bool) {
         self.with_view(|v| {
-            v.shadow.set_ring(on.then(|| selection_ring(&v.theme)));
+            let radius = v.shape_radius();
+            v.shadow
+                .set_ring(on.then_some(crate::shadow::SelectionRing { radius_dip: radius }));
             v.update_shadow();
             if v.is_clear() {
                 // The ring lives in the shadow, which a fully transparent plate hides at rest:
@@ -1772,14 +1778,35 @@ impl FenceWindow {
                 v.gpu_glass.borrow_mut().reset();
             }
             v.backdrops = backdrops;
+            v.shadow_base = shadow;
             v.shadow.set_style(shadow);
             if v.shadow.ring().is_some() {
-                v.shadow.set_ring(Some(selection_ring(&theme)));
+                let radius = v.shape_radius();
+                v.shadow
+                    .set_ring(Some(crate::shadow::SelectionRing { radius_dip: radius }));
             }
             v.update_shadow();
             v.invalidate_backdrop();
             let (w, h) = window::window_rect_size(v.hwnd);
             let _ = v.layout_panels(w, h);
+            // The radius is size-dependent (a capsule): re-derive it at the new geometry.
+            v.sync_shape_decorations();
+            let _ = v.redraw();
+        });
+    }
+
+    /// Applies a fence shape (外观 → 形状): the plate, window clip, shadow and selection ring
+    /// all take its corner radius, so a capsule stays a capsule at every size.
+    pub fn set_shape(&self, shape: FenceShape) {
+        self.with_view(|v| {
+            if v.shape == shape {
+                return;
+            }
+            v.shape = shape;
+            let (w, h) = v.chrome_panel.size_px();
+            let _ = v.layout_panels(w, h);
+            v.sync_shape_decorations();
+            v.update_shadow_now();
             let _ = v.redraw();
         });
     }
@@ -1825,12 +1852,5 @@ impl FenceWindow {
                 let _ = v.redraw_content();
             }
         });
-    }
-}
-
-/// The desktop selection ring, concentric with the fence's corners.
-fn selection_ring(theme: &Theme) -> crate::shadow::SelectionRing {
-    crate::shadow::SelectionRing {
-        radius_dip: theme.corner_radius,
     }
 }

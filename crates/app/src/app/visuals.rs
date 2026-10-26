@@ -877,14 +877,14 @@ pub(super) fn shadow_style_for(theme: &Theme) -> ShadowStyle {
 }
 
 pub(super) fn tray_icon_image(size: i32, _accent: [u8; 3], _dark: bool) -> Vec<u8> {
-    // The product mark: the shipped icon as 64×64 straight BGRA (`assets/mark-64.bgra`, made
-    // from the same picture as the .ico by scripts/make-mark-bgra.ps1), premultiplied once,
-    // box-filtered down to the asked size and clipped to the rounded plate the drawn mark it
-    // replaced used (corners of 22 % of the side, transparent outside), so the footprint of
-    // the icon is unchanged. The tray and the settings caption ask for 16–48 px at the DPI in
+    // The product icon: the shipped Nodra icon as 64×64 straight BGRA
+    // (`assets/nodra-64.bgra`, rendered full-bleed from Nodra.svg by the icon script),
+    // premultiplied once, box-filtered down to the asked size and clipped to the rounded
+    // plate (corners of 22 % of the side, transparent outside), so the footprint of the
+    // icon is unchanged. The tray and the settings caption ask for 16–48 px at the DPI in
     // play; sizes above the source keep its 64 px. Premultiplied BGRA out.
     const SRC: usize = 64;
-    const MARK: &[u8; SRC * SRC * 4] = include_bytes!("../../assets/mark-64.bgra");
+    const MARK: &[u8; SRC * SRC * 4] = include_bytes!("../../assets/nodra-64.bgra");
     let dst = size.clamp(8, SRC as i32) as usize;
     let mut plate = [0u8; SRC * SRC * 4];
     for (px, src) in plate.chunks_exact_mut(4).zip(MARK.chunks_exact(4)) {

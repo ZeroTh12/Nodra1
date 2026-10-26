@@ -90,7 +90,7 @@ impl App {
                     &[failed.to_string(), e.to_string()],
                 )
             };
-            t.show_info("PecoFence", &text, true);
+            t.show_info("Nodra", &text, true);
         }
         made
     }
@@ -235,7 +235,7 @@ impl App {
                 tracing::warn!(error = %e, "creating internet shortcut failed");
                 if let Some(t) = &self.tray {
                     t.show_info(
-                        "PecoFence",
+                        "Nodra",
                         &pecofence_core::i18n::format(
                             "无法创建 Internet 快捷方式：{0}",
                             &[e.to_string()],

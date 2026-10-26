@@ -3,3 +3,10 @@
 # dependencies (policy 10.2.4.1), and portable users no longer need the redistributable.
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# This machine has no MSVC toolchain, only MinGW. Pin the GNU target to MinGW's
+# gcc/ar/windres so cargo does not fall back to a `link.exe` on PATH (MinGW ships a
+# coreutils `link` that is `ln`, not a linker, which breaks linking).
+[target.x86_64-pc-windows-gnu]
+linker = "gcc"
+ar = "ar"

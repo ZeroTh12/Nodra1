@@ -6,9 +6,9 @@ use super::*;
 pub(super) struct DragState {
     pub(super) start: (i32, i32),
     pub(super) item: usize,
-    /// Plain press on an already-selected item of a multi-selection: a release that never
-    /// became a drag collapses the selection to this item (Explorer).
-    pub(super) collapse_on_up: bool,
+    /// Plain press: a release that never became a drag clears the selection. A click selects
+    /// nothing here; the plate under the pointer is the hover highlight alone.
+    pub(super) clear_on_up: bool,
     /// The pressed item was the sole selected item before the press: a release on its label
     /// arms the slow-double-click rename.
     pub(super) was_sole_selected: bool,
@@ -20,15 +20,16 @@ pub(super) struct DragState {
 /// What a left press on item `i` did to the selection, for the release.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct ItemPress {
-    pub(super) collapse_on_up: bool,
+    pub(super) clear_on_up: bool,
     pub(super) was_sole_selected: bool,
     pub(super) deselect_on_up: bool,
 }
 
 /// Explorer's press rules on item `i`: Shift = range from the anchor (added to the selection
-/// with Ctrl), Ctrl = toggle, plain = select it unless it is already selected (a plain press
-/// keeps a multi-selection for dragging and collapses it on a release without a drag). Ctrl
-/// on a selected item toggles it off only on a release without a drag ([`release_item`]).
+/// with Ctrl), Ctrl = toggle. A plain press selects nothing: the only highlight is the hover
+/// plate under the pointer, and the release clears the selection (a drag still carries the
+/// item, or a multi-selection the press landed on). Ctrl on a selected item toggles it off
+/// only on a release without a drag ([`release_item`]).
 pub(super) fn press_item(
     selected: &mut HashSet<usize>,
     range_anchor: &mut Option<usize>,
@@ -36,10 +37,10 @@ pub(super) fn press_item(
     shift: bool,
     ctrl: bool,
 ) -> ItemPress {
-    let plain = !shift && !ctrl && selected.contains(&i);
+    let plain = !shift && !ctrl;
     let press = ItemPress {
-        collapse_on_up: plain && selected.len() > 1,
-        was_sole_selected: plain && selected.len() == 1,
+        clear_on_up: plain,
+        was_sole_selected: plain && selected.len() == 1 && selected.contains(&i),
         deselect_on_up: ctrl && !shift && selected.contains(&i),
     };
     if shift && let Some(a) = *range_anchor {
@@ -51,9 +52,10 @@ pub(super) fn press_item(
     } else if ctrl {
         selected.insert(i);
         *range_anchor = Some(i);
-    } else if !selected.contains(&i) {
-        selected.clear();
-        selected.insert(i);
+    } else {
+        // Plain: the selection stays as it is until the release, so a press on a selected item
+        // still drags the whole set. The drop anchor still moves here, so Shift+click ranges
+        // start from the last clicked item.
         *range_anchor = Some(i);
     }
     press

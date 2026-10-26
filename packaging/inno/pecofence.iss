@@ -35,6 +35,8 @@ AppSupportURL=https://github.com/{#Repository}/issues
 AppUpdatesURL=https://github.com/{#Repository}/releases
 DefaultDirName={localappdata}\Programs\{#ProductName}
 DefaultGroupName={#ProductName}
+; Always offer the destination page: the user picks the default folder or types their own.
+DisableDirPage=no
 PrivilegesRequired=lowest
 UsePreviousAppDir=yes
 DisableProgramGroupPage=yes
@@ -47,7 +49,10 @@ OutputBaseFilename=pecofence-v{#AppVersion}-x64-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-AppMutex={#AppMutexNames}
+; No [Setup] AppMutex: it would abort with a dialog before the script can close a
+; running app. InitializeSetup asks the app to leave through its own update-close
+; path instead (silent for the updater, no prompt for the user), and waits for the
+; instance mutex to be released before anything is removed or overwritten.
 SetupMutex=Local\{#ProductId}.Setup
 ; The app/watchdog must restore desktop icons through their normal exit path.
 CloseApplications=no
@@ -127,9 +132,13 @@ ru.NewerVersion=Уже установлена более новая версия
 const
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#ProductId}_is1';
   RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
+  ControlWindowClass = 'PecoFence.Control';
+  WM_QUERYENDSESSION = $0011;
+  WM_ENDSESSION = $0016;
+  ENDSESSION_CLOSEAPP = $00000001;
 
 var
-  Updating, Installed: Boolean;
+  Updating, Installed, OldRemoved: Boolean;
 
 function OpenProcess(Access: DWORD; Inherit: BOOL; Pid: DWORD): THandle;
   external 'OpenProcess@kernel32.dll stdcall';
@@ -137,11 +146,45 @@ function WaitForSingleObject(Handle: THandle; Milliseconds: DWORD): DWORD;
   external 'WaitForSingleObject@kernel32.dll stdcall';
 function CloseHandle(Handle: THandle): BOOL;
   external 'CloseHandle@kernel32.dll stdcall';
+procedure Sleep(Milliseconds: DWORD);
+  external 'Sleep@kernel32.dll stdcall';
+function FindWindowW(ClassName: String; WindowName: String): THandle;
+  external 'FindWindowW@user32.dll stdcall';
+function PostMessageW(Wnd: THandle; Msg: DWORD; WParam: DWORD; LParam: DWORD): BOOL;
+  external 'PostMessageW@user32.dll stdcall';
 
 { /UPDATE=<pid>,<pid>...: started by Nodra's updater, which exits right away. Wait, 30 s
-  at most in all, until it, its watchdogs and its instance lock are gone, so the AppMutex
-  check that follows passes and no file is in use. Every pid is opened first, so one that
-  exits early cannot be reused by another process meanwhile. }
+  at most in all, until it, its watchdogs and its instance lock are gone, so no file is
+  in use. Every pid is opened first, so one that exits early cannot be reused by another
+  process meanwhile. }
+{ Asks a running instance to leave through its own update-close path, the same one
+  Restart Manager triggers: WM_QUERYENDSESSION saves the config and shows the real
+  desktop icons, WM_ENDSESSION with ENDSESSION_CLOSEAPP then quits as the tray's
+  exit item does. The watchdog sees the clean-exit marker gone and exits without
+  restarting the old build. Afterwards the instance mutex must be free. }
+procedure CloseRunningAppGracefully;
+var
+  Wnd: THandle;
+  I: Integer;
+begin
+  if CheckForMutexes('{#AppMutexNames}') then begin
+    Wnd := FindWindowW(ControlWindowClass, 'Nodra');
+    if Wnd = 0 then
+      Wnd := FindWindowW(ControlWindowClass, 'PecoFence');
+    if Wnd <> 0 then begin
+      PostMessageW(Wnd, WM_QUERYENDSESSION, 0, 0);
+      Sleep(800);
+      PostMessageW(Wnd, WM_ENDSESSION, 1, ENDSESSION_CLOSEAPP);
+      Log('asked the running app to close for the update');
+    end;
+    for I := 1 to 100 do begin
+      if not CheckForMutexes('{#AppMutexNames}') then
+        break;
+      Sleep(100);
+    end;
+  end;
+end;
+
 function InitializeSetup: Boolean;
 var
   Pids: String;
@@ -149,6 +192,12 @@ var
   Processes: array of THandle;
   Waiting: Boolean;
 begin
+  { Before anything else (and before any in-use file is touched): ask a running
+    instance to leave through its own update-close path and wait for it. }
+#ifndef TestIdentity
+  CloseRunningAppGracefully;
+#endif
+  Result := True;
   Pids := ExpandConstant('{param:UPDATE|}');
   Updating := Pids <> '';
   Count := 0;
@@ -229,6 +278,54 @@ begin
     RemoveBackslashUnlessRoot(ExpandFileName(Right))) = 0;
 end;
 
+{ Uninstalls the previous release with its own unins000.exe, silently and without
+  any user interaction, before this one is installed. The configuration lives
+  outside the install folder and survives both. Returns True when the previous
+  release was removed (its uninstall key is gone afterwards). }
+function RemovePreviousRelease: Boolean;
+var
+  UninstCmd, PreviousVersion: String;
+  PreviousNumber, NewNumber: Int64;
+  ExitCode: Integer;
+  Newer: Boolean;
+begin
+  Result := False;
+  ExitCode := -1;
+  if not RegQueryStringValue(HKCU, UninstallKey, 'UninstallString', UninstCmd) then begin
+    Log('previous release: no UninstallString in the uninstall key');
+    exit;
+  end;
+  if UninstCmd = '' then
+    exit;
+  { Strip the quotes UninstallString wraps the path in. Pos is unreliable on paths
+    with non-ASCII characters, so peel the quotes off the ends by direct comparison. }
+  if Copy(UninstCmd, 1, 1) = '"' then begin
+    Delete(UninstCmd, 1, 1);
+    while (UninstCmd <> '') and (Copy(UninstCmd, Length(UninstCmd), 1) = '"') do
+      Delete(UninstCmd, Length(UninstCmd), 1);
+  end;
+  if (UninstCmd = '') or not FileExists(UninstCmd) then begin
+    Log(Format('previous release: uninstaller not usable: %s', [UninstCmd]));
+    exit;
+  end;
+  { Never uninstall a newer release to install an older one over it. }
+  Newer := False;
+  if RegQueryStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion) then
+    if StrToVersion(PreviousVersion, PreviousNumber) and
+      StrToVersion('{#NumericVersion}', NewNumber) then
+      Newer := ComparePackedVersion(PreviousNumber, NewNumber) > 0;
+  if Newer then begin
+    Log('a newer release is installed; not removing it');
+    exit;
+  end;
+  Log(Format('removing the previous release with %s', [UninstCmd]));
+  if Exec(UninstCmd, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_SHOWNORMAL,
+    ewWaitUntilTerminated, ExitCode) then
+    Result := ExitCode = 0;
+  Sleep(500);
+  Log(Format('previous-release uninstaller exit code: %d', [ExitCode]));
+end;
+
 function DirectoryHasEntries(const Path: String): Boolean;
 var
   Entry: TFindRec;
@@ -254,6 +351,15 @@ var
   PreviousNumber, NewNumber: Int64;
 begin
   Result := '';
+  OldRemoved := False;
+
+#ifndef TestIdentity
+  { A running instance would keep files and locks busy through both the old
+    uninstaller and this install. }
+  CloseRunningAppGracefully;
+#endif
+  OldRemoved := RemovePreviousRelease;
+
   { A registration whose folder was deleted by hand no longer pins the location. }
   if RegQueryStringValue(HKCU, UninstallKey, 'InstallLocation', PreviousDir) and
     DirExists(PreviousDir) then begin
@@ -270,9 +376,11 @@ begin
         if ComparePackedVersion(PreviousNumber, NewNumber) > 0 then
           Result := CustomMessage('NewerVersion');
     end;
-  end else if DirectoryHasEntries(ExpandConstant('{app}')) and
+  end else if (not OldRemoved) and DirectoryHasEntries(ExpandConstant('{app}')) and
     not FileExists(ExpandConstant('{app}\pecofence.exe')) then
-    { A folder the ZIP was extracted into is upgraded in place; unrelated files are not. }
+    { A folder the ZIP was extracted into is upgraded in place; unrelated files are not.
+      After RemovePreviousRelease the emptied folder is the old install location, so a
+      leftover unrelated file must not block the reinstall. }
     Result := CustomMessage('InvalidDestination');
 end;
 

@@ -16,7 +16,7 @@ packages = sorted(
 )
 sections = {}
 lines = [
-    "PecoFence — third-party Rust dependencies",
+    "Nodra — third-party Rust dependencies",
     "Includes runtime and build/test dependencies from Cargo.lock.",
     "WebView2 Loader has its own LICENSE-WebView2Loader.txt.",
     "",

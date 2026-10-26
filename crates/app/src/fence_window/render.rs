@@ -393,7 +393,8 @@ impl FenceViewState {
         let count = (rolled || state.count > 0.0)
             .then(|| pecofence_core::i18n::format("{0} 项", &[format!("{}", self.items.len())]));
         let opacity = self.material_opacity();
-        let theme = self.material_foreground();
+        let mut theme = self.material_foreground();
+        let shape = self.shape;
         let scale = self.scale();
         let chrome = self.chrome.clone();
         let rects = self.tab_rects();
@@ -456,6 +457,9 @@ impl FenceViewState {
             })
             .collect();
         let ok = self.chrome_panel.draw(self.dpi, |session, wd, hd| {
+            // The shape's radius replaces the theme's for every plate, rim and bezel arc in
+            // this draw (the window clip uses the same value, so the two never disagree).
+            theme.corner_radius = shape_radius_dip(shape, theme.corner_radius, wd, hd);
             chrome.draw(
                 session,
                 &mut bitmaps.borrow_mut(),
@@ -618,12 +622,19 @@ impl FenceViewState {
     /// starts at the plate top: a title row folded away by title on hover is cut off too.
     pub(super) fn update_shape_clip(&self, w: i32, h: i32) -> Result<()> {
         let inset = self.plate_inset_px.clamp(0, (h - 1).max(0));
+        let scale = self.scale();
+        let radius = shape_radius_dip(
+            self.shape,
+            self.theme.corner_radius,
+            w as f32 / scale,
+            h as f32 / scale,
+        ) * scale;
         self.motion.clip_rounded_at(
             &self.root,
             inset as f32,
             w as f32,
             (h - inset) as f32,
-            self.theme.corner_radius * self.scale(),
+            radius,
         )?;
         Ok(())
     }

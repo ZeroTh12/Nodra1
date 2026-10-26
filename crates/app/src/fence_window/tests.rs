@@ -363,6 +363,28 @@ fn ctrl_drag_carries_the_whole_selection() {
     assert!(selected.contains(&3) && selected.contains(&0));
 }
 
+/// A plain click is not a selection: the hover plate under the pointer is the only highlight.
+/// The press leaves the selection alone (so it still drags a set) and the release clears it.
+#[test]
+fn plain_click_is_not_a_selection() {
+    let mut selected: HashSet<usize> = HashSet::new();
+    let mut anchor = None;
+    let press = press_item(&mut selected, &mut anchor, 4, false, false);
+    assert!(press.clear_on_up, "a plain release clears the selection");
+    assert!(
+        selected.is_empty(),
+        "a plain press must not select the item"
+    );
+    assert_eq!(anchor, Some(4), "the shift range anchor still follows a click");
+    // A plain press on an already-selected item keeps the set for a drag; the release clears it.
+    let mut selected: HashSet<usize> = [1, 4].into_iter().collect();
+    let press = press_item(&mut selected, &mut anchor, 4, false, false);
+    assert!(press.clear_on_up);
+    assert_eq!(selected, HashSet::from([1, 4]));
+    assert!(!press.deselect_on_up);
+    assert!(press.was_sole_selected == false || selected.len() == 1);
+}
+
 /// Real file paths stay ours; Outlook mail, a Start-menu app (its `CF_HDROP` holds a
 /// known-folder-relative "path") and other shell-only items go to the shell; our own fences'
 /// drags and browser links keep their paths.
@@ -1115,6 +1137,56 @@ fn resized_bottom_stops_a_gap_above_the_fence_below() {
     let mut r = rc(100, 100, 420, 850);
     assert!(size_among(&mut r, &cur, BOTTOM, &rules, None).is_empty());
     assert_eq!(r.bottom, 826, "7 whole rows, no neighbour stop");
+}
+
+/// An edge that stops a gap short of a fence beyond it marks that stop on its own outermost
+/// edge: the border is visibly locked to the exact gap position, just as a level edge is.
+#[test]
+fn resized_edge_stopped_a_gap_short_shows_the_gap_line() {
+    let cur = rc(100, 100, 420, 442);
+    let below = rc(100, 700, 420, 900);
+    let rules = cell_rules();
+    let mut r = rc(100, 100, 420, 690);
+    let guides = size_among(
+        &mut r,
+        &cur,
+        BOTTOM,
+        &rules,
+        Some(&neighbours(&[below], None, true)),
+    );
+    assert_eq!(r.bottom, 692);
+    assert_eq!(
+        guides,
+        vec![GuideLine {
+            vertical: false,
+            at: 692,
+            from: 100,
+            to: 420,
+        }]
+    );
+    // A side edge pushed against the fence beside it.
+    let beside = rc(444, 100, 700, 400);
+    let mut r = rc(100, 100, 430, 400);
+    let guides = size_among(
+        &mut r,
+        &rc(100, 100, 420, 400),
+        SizingEdges {
+            right: true,
+            ..SizingEdges::default()
+        },
+        &rules,
+        Some(&neighbours(&[beside], None, true)),
+    );
+    assert_eq!(r.right, 436);
+    assert_eq!(
+        guides,
+        vec![GuideLine {
+            vertical: true,
+            at: 436,
+            from: 100,
+            to: 400,
+        }]
+    );
 }
 
 /// A side edge lines up with a stacked fence's side edge (guide along it) and otherwise takes

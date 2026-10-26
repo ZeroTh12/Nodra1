@@ -46,7 +46,7 @@ struct ApiAsset {
 }
 
 pub fn setup_name(version: &str) -> String {
-    format!("pecofence-v{version}-x64-setup.exe")
+    format!("nodra-v{version}-x64-setup.exe")
 }
 
 /// Parses `releases/latest`. Files only count at their exact place under `download_base`
@@ -111,7 +111,7 @@ pub fn is_newer(candidate: &str, current: &str) -> bool {
 mod tests {
     use super::*;
 
-    const BASE: &str = "https://github.com/DayuanJiang/PecoFence/releases/download/";
+    const BASE: &str = "https://github.com/ZeroTh12/Nodra1/releases/download/";
 
     fn release_json(tag: &str, assets: &[(&str, &str)]) -> String {
         let assets: Vec<_> = assets
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn picks_the_setup_from_this_repository() {
-        let exe = format!("{BASE}v0.1.4/pecofence-v0.1.4-x64-setup.exe");
+        let exe = format!("{BASE}v0.1.4/nodra-v0.1.4-x64-setup.exe");
         let json = release_json(
             "v0.1.4",
             &[
@@ -157,7 +157,7 @@ mod tests {
                     "pecofence-v0.1.4-x64-portable.zip",
                     "https://example.invalid/zip",
                 ),
-                ("pecofence-v0.1.4-x64-setup.exe", &exe),
+                ("nodra-v0.1.4-x64-setup.exe", &exe),
             ],
         );
         let release = parse_release(&json, BASE).unwrap();
@@ -165,12 +165,12 @@ mod tests {
         // Not the response's html_url: that is never opened.
         assert_eq!(
             release.page,
-            "https://github.com/DayuanJiang/PecoFence/releases/tag/v0.1.4"
+            "https://github.com/ZeroTh12/Nodra1/releases/tag/v0.1.4"
         );
         assert_eq!(
             release.setup,
             Some(SetupAsset {
-                name: "pecofence-v0.1.4-x64-setup.exe".into(),
+                name: "nodra-v0.1.4-x64-setup.exe".into(),
                 url: exe,
             })
         );

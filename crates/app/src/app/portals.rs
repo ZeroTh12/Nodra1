@@ -154,7 +154,7 @@ impl App {
             tracing::warn!(folder = %folder.display(), "portal: not a directory");
             if let Some(t) = &self.tray {
                 t.show_info(
-                    "PecoFence",
+                    "Nodra",
                     &pecofence_core::i18n::format(
                         "无法在桌面显示：{0} 不是文件夹",
                         &[format!("{}", folder.display())],

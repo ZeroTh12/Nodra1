@@ -43,14 +43,14 @@ fn reply_from(response: Response) -> Result<Reply, IpcError> {
     if !response.ok {
         let mut error = response
             .error
-            .unwrap_or_else(|| IpcError::internal("PecoFence reported a failure without details"));
+            .unwrap_or_else(|| IpcError::internal("Nodra reported a failure without details"));
         // A method this CLI knows but the app does not: same protocol version, older app.
         if error.code == ErrorCode::Usage
             && error.message.contains("unknown variant")
             && error.hint.as_deref().is_none_or(|h| !h.contains("older"))
         {
             error = error.hint(
-                "The running PecoFence is older than this CLI and lacks this command; update the app",
+                "The running Nodra is older than this CLI and lacks this command; update the app",
             );
         }
         return Err(error);
@@ -184,7 +184,7 @@ fn watch(
     match (finished, first) {
         (true, Some(event)) => Ok(event),
         (true, None) => Ok(Reply::new(Value::Null)),
-        (false, _) => Err(IpcError::internal("PecoFence closed the event stream")
+        (false, _) => Err(IpcError::internal("Nodra closed the event stream")
             .hint("The app exited or was restarted; run `pecofence-cli watch` again")),
     }
 }

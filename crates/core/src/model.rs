@@ -703,6 +703,27 @@ pub struct AppearanceOverride {
     /// This fence's bar in a tab strip (None = its tint).
     #[serde(default)]
     pub tab_rgb: Option<[u8; 3]>,
+    /// The fence's silhouette (外观 → 形状).
+    #[serde(default)]
+    pub shape: FenceShape,
+}
+
+/// A fence's silhouette: the corner-radius family the plate and the window clip follow.
+/// Every variant is a rounded rectangle with a different radius, so content, hit testing and
+/// the shadow all stay exact; `Capsule` takes half the shorter side, so it follows the size.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum FenceShape {
+    /// The theme's corner radius (8 Fluent, 16 Liquid Glass, a custom theme's value).
+    #[default]
+    Theme,
+    /// 16 DIPs: Fluent's large window corner.
+    Round,
+    /// 24 DIPs: a soft, almost-pill corner on small fences.
+    ExtraRound,
+    /// Half the shorter side: a pill, whatever the fence's size.
+    Capsule,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

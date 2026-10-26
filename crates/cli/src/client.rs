@@ -42,9 +42,9 @@ unsafe extern "system" {
 }
 
 pub const NOT_RUNNING_HINT: &str =
-    "Start PecoFence, or pass --instance / set PECOFENCE_INSTANCE to match the running instance";
+    "Start Nodra, or pass --instance / set PECOFENCE_INSTANCE to match the running instance";
 pub const TIMEOUT_HINT: &str =
-    "Close any open PecoFence menu or dialog and retry, or raise --timeout";
+    "Close any open Nodra menu or dialog and retry, or raise --timeout";
 
 /// Sends one request and waits for the reply. `Ok` carries the server's envelope, which may
 /// itself be `ok: false`; transport failures are mapped to `not_running` / `timeout` /
@@ -71,7 +71,7 @@ pub fn send(instance: Option<&str>, method: Method, timeout_ms: u32) -> Result<R
         Ok(result) => result,
         Err(_) => Err(IpcError::new(
             ErrorCode::Timeout,
-            format!("no reply from PecoFence within {timeout_ms} ms"),
+            format!("no reply from Nodra within {timeout_ms} ms"),
         )
         .hint(TIMEOUT_HINT)),
     }
@@ -126,7 +126,7 @@ pub fn stream(
                     }
                 }
                 let parsed = serde_json::from_str::<Response>(reply.trim_end())
-                    .map_err(|e| IpcError::internal(format!("malformed line from PecoFence: {e}")));
+                    .map_err(|e| IpcError::internal(format!("malformed line from Nodra: {e}")));
                 if tx.send(parsed).is_err() {
                     return;
                 }
@@ -140,14 +140,14 @@ pub fn stream(
         Err(_) => {
             return Err(IpcError::new(
                 ErrorCode::Timeout,
-                format!("no reply from PecoFence within {timeout_ms} ms"),
+                format!("no reply from Nodra within {timeout_ms} ms"),
             )
             .hint(TIMEOUT_HINT));
         }
     };
     if !first.ok {
         return Err(first.error.unwrap_or_else(|| {
-            IpcError::internal("PecoFence declined the subscription without details")
+            IpcError::internal("Nodra declined the subscription without details")
         }));
     }
     while let Ok(result) = rx.recv() {
@@ -175,7 +175,7 @@ fn exchange(name: &str, line: &str) -> Result<Response, IpcError> {
         Err(e) => return Err(IpcError::internal(format!("cannot read from {name}: {e}"))),
     }
     serde_json::from_str::<Response>(reply.trim_end()).map_err(|e| {
-        IpcError::internal(format!("malformed reply from PecoFence: {e}"))
+        IpcError::internal(format!("malformed reply from Nodra: {e}"))
             .hint("The app and the CLI may be different versions; reinstall or update both")
     })
 }
@@ -188,7 +188,7 @@ fn pipe_name(instance: Option<&str>) -> Result<String, IpcError> {
 }
 
 fn closed() -> IpcError {
-    IpcError::internal("connection closed by PecoFence")
+    IpcError::internal("connection closed by Nodra")
         .hint("Check the app's log; if it crashed, start it again")
 }
 
@@ -213,7 +213,7 @@ fn open(name: &str) -> Result<std::fs::File, IpcError> {
             Some(ERROR_FILE_NOT_FOUND) => {
                 return Err(IpcError::new(
                     ErrorCode::NotRunning,
-                    format!("PecoFence is not running (no pipe {name})"),
+                    format!("Nodra is not running (no pipe {name})"),
                 )
                 .hint(NOT_RUNNING_HINT));
             }
@@ -226,7 +226,7 @@ fn open(name: &str) -> Result<std::fs::File, IpcError> {
             Some(ERROR_PIPE_BUSY) => {
                 return Err(IpcError::new(
                     ErrorCode::Busy,
-                    "every PecoFence pipe instance is busy",
+                    "every Nodra pipe instance is busy",
                 )
                 .hint("Retry in a moment; run fewer CLI calls in parallel"));
             }

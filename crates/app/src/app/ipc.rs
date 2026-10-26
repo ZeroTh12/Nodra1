@@ -741,7 +741,7 @@ impl App {
                 let rolled_back = rolled_back_settings(&requested, after);
                 if !rolled_back.is_empty() {
                     self.ipc_warnings.push(format!(
-                        "PecoFence rolled back {}: the change could not be applied (see the log)",
+                        "Nodra rolled back {}: the change could not be applied (see the log)",
                         rolled_back.join(", ")
                     ));
                 }
@@ -1035,7 +1035,7 @@ impl App {
         else {
             return Err(IpcError::new(
                 ErrorCode::InvalidValue,
-                format!("{path:?} is not one of PecoFence's backups"),
+                format!("{path:?} is not one of Nodra's backups"),
             )
             .hint("Run `pecofence-cli backup list` and pass one of its paths verbatim")
             .details(json!({
@@ -1057,7 +1057,7 @@ impl App {
             IpcError::new(
                 ErrorCode::ValidationFailed,
                 format!(
-                    "{} is not a usable PecoFence configuration: {e}",
+                    "{} is not a usable Nodra configuration: {e}",
                     source.display()
                 ),
             )
@@ -1317,6 +1317,7 @@ impl App {
             reverse: f.view.reverse,
             group_by_date: f.view.group_by_date,
             label_lines: f.view.label_lines,
+            shape: text("shape"),
             portal,
             // Only the fence the window currently shows has a measured layout.
             fit: (connected && measure)

@@ -212,6 +212,13 @@ fn main() -> Result<()> {
 
     init_logging(instance.as_deref());
     install_panic_hook();
+    // Launches from the Run key race the rest of the sign-in workload at Normal priority;
+    // Above Normal keeps the fences' first draw fast (harmless for manual launches).
+    if pecofence_platform::process::raise_priority_above_normal() {
+        tracing::debug!("process priority raised to Above Normal");
+    } else {
+        tracing::debug!("process priority boost refused; continuing at Normal");
+    }
     if let Some(dir) = log_dir() {
         pecofence_platform::crashlog::install(dir, instance.as_deref().unwrap_or("main"));
     }

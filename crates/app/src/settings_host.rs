@@ -197,7 +197,7 @@ impl SettingsHost {
         ));
 
         let window = WindowBuilder::new(class)
-            .title(pecofence_core::i18n::text("PecoFence 设置"))
+            .title(pecofence_core::i18n::text("Nodra 设置"))
             .style(style::OVERLAPPEDWINDOW | style::CLIPCHILDREN)
             .bounds(x, y, w, h)
             .create(handler)?;
@@ -290,7 +290,7 @@ impl SettingsHost {
     pub fn update_language(&self) {
         window::set_title(
             self.window.hwnd(),
-            pecofence_core::i18n::text("PecoFence 设置"),
+            pecofence_core::i18n::text("Nodra 设置"),
         );
     }
 

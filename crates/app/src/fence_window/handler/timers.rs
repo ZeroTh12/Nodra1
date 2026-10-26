@@ -343,6 +343,29 @@ pub(super) fn on_timer_shadow(
     Some(0)
 }
 
+/// Lays the cell grid out for the size the resize throttle (`nc::on_size`) postponed: between
+/// `WM_SIZE` messages the fence edge already followed the pointer, and this catches the content
+/// up without ever blocking the system size loop.
+pub(super) fn on_timer_resize_settle(
+    h: &HandlerCtx,
+    hwnd: HWND,
+    _wparam: usize,
+    _lparam: isize,
+) -> Option<isize> {
+    let HandlerCtx { view, .. } = h;
+    window::kill_timer(hwnd, TIMER_RESIZE_SETTLE);
+    if let Ok(mut guard) = view.try_borrow_mut()
+        && let Some(v) = guard.as_mut()
+        && let Some((nw, nh)) = v.resize_pending.take()
+    {
+        if let Err(error) = v.layout_panels(nw, nh).and_then(|_| v.redraw()) {
+            tracing::warn!(%error, "resize settle layout failed");
+        }
+        v.resize_content_at = Some(Instant::now());
+    }
+    Some(0)
+}
+
 pub(super) fn on_entermenuloop(
     h: &HandlerCtx,
     _hwnd: HWND,

@@ -294,8 +294,8 @@ fn serve(connection: File, control: isize, pending: &PendingQueue, active: &Atom
             let response = match rx.recv_timeout(timeout) {
                 Ok(r) => r,
                 Err(_) => Response::err(
-                    IpcError::new(ErrorCode::Timeout, "PecoFence did not answer in time")
-                        .hint("Close any open PecoFence menu or dialog and retry"),
+                    IpcError::new(ErrorCode::Timeout, "Nodra did not answer in time")
+                        .hint("Close any open Nodra menu or dialog and retry"),
                 ),
             };
             let stream = (is_stream && response.ok).then_some(rx);
@@ -424,12 +424,12 @@ fn read_request(connection: impl Read) -> Result<Request, ReadError> {
             return Err(IpcError::new(
                 ErrorCode::VersionMismatch,
                 format!(
-                    "the CLI speaks protocol {v}, this PecoFence {} speaks protocol {PROTOCOL_VERSION}",
+                    "the CLI speaks protocol {v}, this Nodra {} speaks protocol {PROTOCOL_VERSION}",
                     env!("CARGO_PKG_VERSION")
                 ),
             )
             .hint(format!(
-                "Update pecofence-cli to match PecoFence {}, or restart PecoFence",
+                "Update pecofence-cli to match Nodra {}, or restart Nodra",
                 env!("CARGO_PKG_VERSION")
             ))
             .into());

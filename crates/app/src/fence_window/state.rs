@@ -274,6 +274,10 @@ pub struct FenceViewState {
     pub(super) title_on_hover_override: Option<bool>,
     /// Per-fence colour wash / title colour / title size.
     pub(super) style: FenceStyle,
+    /// The fence's silhouette: the corner-radius family the plate, clip and shadow follow.
+    pub(super) shape: FenceShape,
+    /// The theme's shadow style; the shape overrides its corner radius.
+    pub(super) shadow_base: ShadowStyle,
     /// Icon grid spacing (FenceView.spacing).
     pub(super) spacing: Spacing,
     /// Keyboard/selection anchor: the last item clicked or moved to with the arrow keys.
@@ -331,6 +335,12 @@ pub struct FenceViewState {
     /// Temporarily expanded by hovering a rolled fence (state stays "rolled" for persistence).
     pub(super) peeking: bool,
     pub(super) behavior: Rc<Behavior>,
+    /// When the cell grid was last re-laid out for a new size during the system size loop
+    /// (`nc::on_size`): re-laying it out for every WM_SIZE made the edge lag the pointer.
+    pub(super) resize_content_at: Option<Instant>,
+    /// The size that arrived while the re-layout was throttled; settled on TIMER_RESIZE_SETTLE
+    /// or when the drag ends.
+    pub(super) resize_pending: Option<(i32, i32)>,
 }
 
 impl FenceViewState {
@@ -412,5 +422,45 @@ impl FenceViewState {
     /// scrolling and redraws keep addressing the frozen surface).
     pub(super) fn content_size_px(&self) -> (i32, i32) {
         self.content_panel.size_px()
+    }
+
+    /// The plate / clip / shadow corner radius in DIPs for the current size (see
+    /// [`FenceShape`]).
+    pub(super) fn shape_radius(&self) -> f32 {
+        let (w, h) = self.chrome_panel.size_px();
+        let scale = self.scale();
+        shape_radius_dip(
+            self.shape,
+            self.theme.corner_radius,
+            w as f32 / scale,
+            h as f32 / scale,
+        )
+    }
+
+    /// Re-derives the cached radius-bitmap decorations (shadow silhouette, desktop selection
+    /// ring) after the shape or the size changed. They are not redrawn with the plate.
+    pub(super) fn sync_shape_decorations(&mut self) {
+        let radius = self.shape_radius();
+        let style = ShadowStyle {
+            radius,
+            ..self.shadow_base
+        };
+        // Both setters no-op when the value is unchanged (they rebuild a template otherwise).
+        self.shadow.set_style(style);
+        if self.shadow.ring().is_some() {
+            self.shadow
+                .set_ring(Some(crate::shadow::SelectionRing { radius_dip: radius }));
+        }
+    }
+}
+
+/// A shape's corner radius in DIPs at a DIP size. `Capsule` is half the shorter side, so it
+/// stays a pill at every size; the plate clamps the same way, so the two always agree.
+pub(super) fn shape_radius_dip(shape: FenceShape, theme_radius: f32, w: f32, h: f32) -> f32 {
+    match shape {
+        FenceShape::Theme => theme_radius,
+        FenceShape::Round => 16.0,
+        FenceShape::ExtraRound => 24.0,
+        FenceShape::Capsule => (w.min(h) * 0.5).max(0.0),
     }
 }

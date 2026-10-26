@@ -4,7 +4,7 @@
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use pecofence_ipc::{DEFAULT_TIMEOUT_MS, Rect};
 
-const ABOUT: &str = "Control a running PecoFence (Windows desktop fences) from the terminal.\n\
+const ABOUT: &str = "Control a running Nodra (Windows desktop fences) from the terminal.\n\
 Every command prints JSON (pretty on a terminal, one line otherwise); errors go to stderr as JSON.\n\
 Agents: start with `pecofence-cli describe` (command catalog) and `pecofence-cli skill` (usage guide).";
 
@@ -129,7 +129,7 @@ pub enum Command {
         #[arg(long, short = 'n', value_name = "N", default_value_t = 50)]
         lines: usize,
     },
-    /// Where PecoFence keeps its files: config, backups, log, crash dumps (works offline)
+    /// Where Nodra keeps its files: config, backups, log, crash dumps (works offline)
     #[command(after_help = "Example: pecofence-cli paths")]
     Paths,
 }
@@ -248,7 +248,7 @@ pub enum FenceCmd {
         #[arg(long, group = "size")]
         h: Option<i32>,
     },
-    /// Set a per-fence option (title, iconSize, spacing, autoHeight, locked, excludeFromQuickHide, opacity, tint, tintTitleOnly, tabColor, titleColor, titleSize, titleOnHover, layout, sort, reverse, groupByDate, labelLines, portalNavigate, portalTitleIcon, hideWhenEmpty); `fence rename` is the friendlier way to set title
+    /// Set a per-fence option (title, iconSize, spacing, autoHeight, locked, excludeFromQuickHide, opacity, tint, tintTitleOnly, tabColor, titleColor, titleSize, titleOnHover, layout, sort, reverse, groupByDate, labelLines, shape, portalNavigate, portalTitleIcon, hideWhenEmpty); `fence rename` is the friendlier way to set title
     #[command(
         override_usage = "pecofence-cli fence set [OPTIONS] <FENCE> <PROP> <VALUE>\n       pecofence-cli fence set [OPTIONS] --all <PROP> <VALUE>",
         after_help = "Arguments:\n  <FENCE>  Fence: id, unique id prefix (>=6 hex), or title (exact, then unique substring)\n  <PROP>   Option name as shown by `fence get` (title: prefer `fence rename`)\n  <VALUE>  JSON value or bare text: 48, true, list, null; quote # colours: \"#ff8800\" or '\"#ff8800\"'\n\nExample: pecofence-cli fence set Work layout list\n         pecofence-cli fence set Work tint \"#ff8800\"\n         pecofence-cli fence set --all opacity clear"

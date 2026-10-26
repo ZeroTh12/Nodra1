@@ -159,7 +159,7 @@ impl PeekOverlay {
             // Work area, not bounds: the taskbar must stay visible and reachable.
             let b = m.work_area;
             let w = WindowBuilder::new(class)
-                .title("PecoFence peek")
+                .title("Nodra peek")
                 .style(style::POPUP)
                 .ex_style(style::EX_TOOLWINDOW | style::EX_LAYERED | style::EX_TOPMOST)
                 .bounds(b.left, b.top, b.right - b.left, b.bottom - b.top)

@@ -3,7 +3,7 @@ name = "pecofence-ipc"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Wire protocol shared by PecoFence and pecofence-cli (named-pipe JSON requests)."
+description = "Wire protocol shared by Nodra and pecofence-cli (named-pipe JSON requests)."
 
 [dependencies]
 pecofence-core = { path = "../core" }

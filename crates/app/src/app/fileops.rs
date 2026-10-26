@@ -144,7 +144,7 @@ impl App {
 
     fn toast(&self, text: String) {
         if let Some(t) = &self.tray {
-            t.show_info("PecoFence", &text, true);
+            t.show_info("Nodra", &text, true);
         }
     }
 

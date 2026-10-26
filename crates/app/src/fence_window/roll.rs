@@ -130,6 +130,9 @@ impl FenceViewState {
 
     pub(super) fn update_shadow_now(&mut self) {
         window::kill_timer(self.hwnd, TIMER_SHADOW);
+        // The shape's radius follows the size: a capsule's shadow must stay a capsule while
+        // the fence rolls up or down.
+        self.sync_shape_decorations();
         let r = self.plate_rect();
         self.shadow.update(r, self.dpi);
         self.shadow_uploaded = Some(Instant::now());

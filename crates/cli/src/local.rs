@@ -155,9 +155,9 @@ pub fn check_config(path: &Path) -> Result<(Value, bool), IpcError> {
     let cfg = config_store::ConfigStore::parse_file(path).map_err(|e| {
         IpcError::new(
             ErrorCode::ValidationFailed,
-            format!("{} would be rejected by PecoFence: {e}", path.display()),
+            format!("{} would be rejected by Nodra: {e}", path.display()),
         )
-        .details(json!({ "expected": "a config.json as written by PecoFence (describe --schema Config)" }))
+        .details(json!({ "expected": "a config.json as written by Nodra (describe --schema Config)" }))
     })?;
     let problems = config_store::lint(&cfg);
     let errors = problems
@@ -224,7 +224,7 @@ pub fn print_log(path: &Path, lines: usize, follow: bool) -> Result<(), IpcError
             ErrorCode::InvalidValue,
             format!("cannot open {}: {e}", path.display()),
         )
-        .hint("PecoFence writes the log on start; `pecofence-cli paths` shows where it is expected")
+        .hint("Nodra writes the log on start; `pecofence-cli paths` shows where it is expected")
     })?;
     let mut text = String::new();
     file.read_to_string(&mut text)

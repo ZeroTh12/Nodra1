@@ -15,8 +15,8 @@ use crate::layout::{
 };
 use crate::shadow::{ShadowStyle, ShadowWindow};
 use pecofence_core::{
-    CivilDate, DateBucket, FenceId, IconKey, ItemId, ItemKey, SortMode, Spacing, ViewLayout,
-    date_bucket,
+    CivilDate, DateBucket, FenceId, FenceShape, IconKey, ItemId, ItemKey, SortMode, Spacing,
+    ViewLayout, date_bucket,
 };
 use pecofence_platform::dragdrop::{
     self as dragdrop, DragImage, DragPoint, DropEffect, DropHandler, DropImage,

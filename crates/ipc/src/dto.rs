@@ -174,6 +174,9 @@ pub struct FenceDto {
     pub reverse: bool,
     pub group_by_date: bool,
     pub label_lines: u8,
+    /// `theme` | `round` | `extraRound` | `capsule`.
+    #[serde(default)]
+    pub shape: String,
     pub portal: Option<PortalDto>,
     /// How the items fit the window; `null` for a tab that is not the one currently shown and
     /// for fences without a window (disconnected monitor).

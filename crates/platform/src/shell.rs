@@ -1099,12 +1099,18 @@ pub fn rename_no_replace(from: &Path, to: &Path) -> std::io::Result<()> {
 
 /// Opens an item with the shell (default verb), or runs `verb` (`"runas"`, `"properties"`,
 /// `"openas"`…).
+///
+/// `SEE_MASK_NOASYNC` is deliberately absent: it makes `ShellExecuteExW` block until the shell
+/// finishes its DDE handshake with the target application, and on the UI thread that is exactly
+/// how the whole app turned "not responding" while a program started (Explorer busy, a network
+/// shortcut, an antivirus scan). Without it the shell hands the launch off and returns at once;
+/// callers cannot observe failures any more, which none of them need.
 pub fn shell_execute(path: &Path, verb: Option<&str>, owner: Option<HWND>) -> Result<()> {
     let file = path_wide(path);
     let verb_w = verb.map(to_wide);
     let mut info = SHELLEXECUTEINFOW {
         cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
-        fMask: (SEE_MASK_INVOKEIDLIST | SEE_MASK_NOASYNC) as u32,
+        fMask: SEE_MASK_INVOKEIDLIST as u32,
         hwnd: owner.unwrap_or_default(),
         lpVerb: verb_w
             .as_ref()

@@ -474,6 +474,11 @@ impl App {
             let queue = queue.clone();
             // Virtual desktop of the last foreground window (see WM_APP_WALLPAPER).
             let last_foreground_desktop: Cell<Option<u128>> = Cell::new(None);
+            // Exponential backoff for all Modal-Loop-induced retries. Every try_borrow_mut
+            // failure doubles this up to RETRY_BACKOFF_MAX, so concurrent timers collapse
+            // into an ever-sparsening series instead of a dense storm during menus/dialogs.
+            let retry_backoff = Cell::new(50u32);
+            const RETRY_BACKOFF_MAX: u32 = 5_000;
             let notify_wallpaper = {
                 let wallpaper_schedule = wallpaper_schedule.clone();
                 move |hwnd| {
@@ -490,14 +495,16 @@ impl App {
                     match message {
                         WM_APP_COMMAND => {
                             if let Ok(mut guard) = cell.try_borrow_mut() {
+                                retry_backoff.set(50);
                                 if let Some(app) = guard.as_mut() {
                                     app.process_commands();
                                 }
                             } else {
                                 // The App is borrowed (modal loop inside a handler: menu, file
-                                // dialog): retry shortly. A re-post would spin the CPU for as
-                                // long as the modal loop runs.
-                                window::set_timer(hwnd, TIMER_CMD_RETRY, 50);
+                                // dialog): retry with exponential backoff to avoid a timer storm.
+                                let d = retry_backoff.get();
+                                retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                window::set_timer(hwnd, TIMER_CMD_RETRY, d.max(50));
                             }
                             Some(0)
                         }
@@ -506,10 +513,13 @@ impl App {
                             if let Ok(mut guard) = cell.try_borrow_mut()
                                 && let Some(app) = guard.as_mut()
                             {
+                                retry_backoff.set(50);
                                 app.on_peek_focused(HWND(wparam as *mut core::ffi::c_void));
                                 peek_focus_pending.set(None);
                             } else {
-                                window::set_timer(hwnd, TIMER_PEEK_FOCUS_RETRY, 50);
+                                let d = retry_backoff.get();
+                                retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                window::set_timer(hwnd, TIMER_PEEK_FOCUS_RETRY, d.max(50));
                             }
                             Some(0)
                         }
@@ -621,25 +631,29 @@ impl App {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         window::kill_timer(hwnd, TIMER_SAVE);
                                         app.state.save_if_dirty();
                                         app.notice_save_failure();
                                     } else {
-                                        // Busy (modal loop): retry shortly instead of dropping.
-                                        window::set_timer(hwnd, TIMER_SAVE, 500);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, TIMER_SAVE, d.max(500));
                                     }
                                 }
                                 TIMER_FS => {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         window::kill_timer(hwnd, TIMER_FS);
                                         fs_armed.set(false);
                                         app.on_fs_changed(fs_desktop.take());
                                         fs_flushed.set(Some(Instant::now()));
                                     } else {
-                                        // Busy (modal loop): retry shortly; stays armed.
-                                        window::set_timer(hwnd, TIMER_FS, FS_STORM_MS as u32);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, TIMER_FS, d.max(FS_STORM_MS as u32));
                                     }
                                 }
                                 TIMER_GPU_TRIM => {
@@ -669,6 +683,7 @@ impl App {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         window::kill_timer(hwnd, wparam);
                                         match wparam {
                                             TIMER_PREWARM_FINISH => app.finish_prewarm(),
@@ -683,7 +698,9 @@ impl App {
                                             _ => app.prewarm_wallpapers(),
                                         }
                                     } else {
-                                        window::set_timer(hwnd, wparam, 200);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, wparam, d.max(200));
                                     }
                                 }
                                 TIMER_HOUSEKEEPING => {
@@ -704,14 +721,14 @@ impl App {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         icons_armed.set(false);
                                         window::kill_timer(hwnd, TIMER_ICONS);
                                         app.on_icons_ready();
                                     } else {
-                                        // WebView2 creation and native menus pump messages while
-                                        // the App is borrowed. Keep the completed icon batch
-                                        // pending; workers may have sent their final notification.
-                                        window::set_timer(hwnd, TIMER_ICONS, 100);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, TIMER_ICONS, d.max(100));
                                     }
                                 }
                                 TIMER_WALLPAPER => {
@@ -719,6 +736,7 @@ impl App {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         app.check_wallpaper("notification");
                                         let mut schedule = wallpaper_schedule.get();
                                         if let Some(delay) = schedule.checked(Instant::now()) {
@@ -726,7 +744,9 @@ impl App {
                                         }
                                         wallpaper_schedule.set(schedule);
                                     } else {
-                                        window::set_timer(hwnd, TIMER_WALLPAPER, FIRST_CHECK_MS);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, TIMER_WALLPAPER, d.max(FIRST_CHECK_MS));
                                     }
                                 }
                                 TIMER_WALLPAPER_POLL => {
@@ -761,12 +781,15 @@ impl App {
                                         if let Ok(mut guard) = cell.try_borrow_mut()
                                             && let Some(app) = guard.as_mut()
                                         {
+                                            retry_backoff.set(50);
                                             app.on_peek_focused(HWND(
                                                 dimmer as *mut core::ffi::c_void,
                                             ));
                                             peek_focus_pending.set(None);
                                         } else {
-                                            window::set_timer(hwnd, TIMER_PEEK_FOCUS_RETRY, 50);
+                                            let d = retry_backoff.get();
+                                            retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                            window::set_timer(hwnd, TIMER_PEEK_FOCUS_RETRY, d.max(50));
                                         }
                                     }
                                 }
@@ -785,9 +808,12 @@ impl App {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         app.retry_device_recovery();
                                     } else {
-                                        window::set_timer(hwnd, TIMER_DEVICE_RETRY, 250);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, TIMER_DEVICE_RETRY, d.max(250));
                                     }
                                 }
                                 TIMER_SHUTDOWN_CANCELLED => {
@@ -795,9 +821,12 @@ impl App {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         app.shutdown_cancelled();
                                     } else {
-                                        window::set_timer(hwnd, TIMER_SHUTDOWN_CANCELLED, 250);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, TIMER_SHUTDOWN_CANCELLED, d.max(250));
                                     }
                                 }
                                 TIMER_SYSTEM_SETTINGS_RETRY => {
@@ -805,9 +834,12 @@ impl App {
                                     if let Ok(mut guard) = cell.try_borrow_mut()
                                         && let Some(app) = guard.as_mut()
                                     {
+                                        retry_backoff.set(50);
                                         app.on_system_settings_changed();
                                     } else {
-                                        window::set_timer(hwnd, TIMER_SYSTEM_SETTINGS_RETRY, 250);
+                                        let d = retry_backoff.get();
+                                        retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                        window::set_timer(hwnd, TIMER_SYSTEM_SETTINGS_RETRY, d.max(250));
                                     }
                                 }
                                 TIMER_TRAY_RETRY => {
@@ -845,8 +877,14 @@ impl App {
                             if let Ok(mut guard) = cell.try_borrow_mut()
                                 && let Some(app) = guard.as_mut()
                             {
+                                retry_backoff.set(16);
                                 app.on_frame();
                             } else {
+                                // One frame tick per compositor beat: a size/move loop or a
+                                // flyout re-enters us while the App is borrowed, and dropping
+                                // frames there makes every animation visibly stutter. The
+                                // retry only re-posts the message (no drawing happens while
+                                // borrowed), so the fixed 16 ms cadence costs nothing.
                                 window::set_timer(hwnd, TIMER_FRAME_RETRY, 16);
                             }
                             Some(0)
@@ -897,10 +935,13 @@ impl App {
                             if let Ok(mut guard) = cell.try_borrow_mut()
                                 && let Some(app) = guard.as_mut()
                             {
+                                retry_backoff.set(50);
                                 app.on_system_settings_changed();
                             } else {
+                                let d = retry_backoff.get();
+                                retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
                                 // A menu or dialog runs; Windows does not repeat the broadcast.
-                                window::set_timer(hwnd, TIMER_SYSTEM_SETTINGS_RETRY, 250);
+                                window::set_timer(hwnd, TIMER_SYSTEM_SETTINGS_RETRY, d.max(250));
                             }
                             None
                         }
@@ -923,9 +964,12 @@ impl App {
                             if let Ok(mut guard) = cell.try_borrow_mut()
                                 && let Some(app) = guard.as_mut()
                             {
+                                retry_backoff.set(50);
                                 app.renew_shell_watch();
                             } else {
-                                window::set_timer(hwnd, TIMER_SHELL_WATCH_RETRY, 250);
+                                let d = retry_backoff.get();
+                                retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
+                                window::set_timer(hwnd, TIMER_SHELL_WATCH_RETRY, d.max(250));
                             }
                             Some(0)
                         }
@@ -993,7 +1037,7 @@ impl App {
             )
         };
         let control = WindowBuilder::new(&control_class)
-            .title("PecoFence")
+            .title("Nodra")
             .style(style::POPUP)
             .ex_style(style::EX_TOOLWINDOW | style::EX_NOACTIVATE)
             .bounds(0, 0, 0, 0)
@@ -1123,7 +1167,7 @@ impl App {
             tray_px,
             &tray_icon_image(tray_px, theme.accent_rgb8(), theme_mode == ThemeMode::Dark),
         )
-        .map(|icon| TrayIcon::new(control.hwnd(), TRAY_ID, WM_APP_TRAY, icon, "PecoFence"))
+        .map(|icon| TrayIcon::new(control.hwnd(), TRAY_ID, WM_APP_TRAY, icon, "Nodra"))
         .map_err(|e| tracing::warn!(error = %e, "tray icon image failed"))
         .ok();
         if let Some(t) = &tray
@@ -1291,9 +1335,9 @@ impl App {
             && let Some(t) = &app.tray
         {
             t.show_info(
-                "PecoFence",
-                &pecofence_core::i18n::format(
-                    "无法读取配置文件（可能是较新版本的 PecoFence 写入的），原文件已改名为 {0}。",
+                "Nodra",
+                    &pecofence_core::i18n::format(
+                        "无法读取配置文件（可能是较新版本的 Nodra 写入的），原文件已改名为 {0}。",
                     &[moved
                         .file_name()
                         .map(|n| n.to_string_lossy().into_owned())
@@ -1310,7 +1354,7 @@ impl App {
                 tracing::info!(count = n, to = %desk.display(), "desktop folder moved; records migrated");
                 if let Some(t) = &app.tray {
                     t.show_info(
-                        "PecoFence",
+                        "Nodra",
                         &pecofence_core::i18n::format(
                             "检测到桌面文件夹已移动，已迁移 {0} 个项目的记录。",
                             &[n.to_string()],
@@ -1388,9 +1432,9 @@ impl App {
                 );
                 if let Some(t) = &app.tray {
                     t.show_info(
-                        "PecoFence",
+                        "Nodra",
                         pecofence_core::i18n::text(
-                            "上次 PecoFence 没有正常退出，桌面图标没能恢复显示。现在已重新接管。",
+                            "上次 Nodra 没有正常退出，桌面图标没能恢复显示。现在已重新接管。",
                         ),
                         true,
                     );
@@ -1489,7 +1533,7 @@ impl App {
         self.save_failure_shown = true;
         let path = self.state.config_path_on_disk();
         t.show_info(
-            "PecoFence",
+            "Nodra",
             &pecofence_core::i18n::format(
                 "无法保存配置，退出后更改会丢失。请检查这个文件夹能否写入：{0}",
                 &[path.parent().unwrap_or(&path).display().to_string()],
@@ -1567,7 +1611,7 @@ impl App {
                 );
                 if let Some(t) = &self.tray {
                     t.show_info(
-                        "PecoFence",
+                        "Nodra",
                         pecofence_core::i18n::text("无法隐藏桌面图标，请稍后再试。"),
                         true,
                     );
@@ -1940,7 +1984,7 @@ impl App {
                 self.schedule_save();
                 if let Some(t) = &self.tray {
                     t.show_info(
-                        "PecoFence",
+                        "Nodra",
                         &pecofence_core::i18n::format(
                             "已按规则整理 {0} 个项目。",
                             &[moved.to_string()],

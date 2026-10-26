@@ -292,7 +292,7 @@ impl DesktopAnchor {
             })
         };
         let sentinel = WindowBuilder::new(sentinel_class)
-            .title("PecoFence sentinel")
+            .title("Nodra sentinel")
             .style(style::POPUP)
             .ex_style(style::EX_NOACTIVATE | style::EX_TOOLWINDOW)
             .bounds(0, 0, 0, 0)

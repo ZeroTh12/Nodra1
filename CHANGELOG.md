@@ -1,9 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.2.5
+
+- Rounded icon, everywhere (local build, not upstream). The shipped icon was a full-bleed square, so the installer, the app, the uninstaller and the tray showed hard 90° corners; every size of the icon (and the tray glyph rendered from the same picture) now has antialiased rounded corners, 22 % of the side, matching the fences' radius language.
+- One icon only. The tray and the settings caption used to draw a separate product mark (the rounded plate with the bracket glyph); they now render the shipped Nodra icon itself, so no secondary design exists anywhere.
+- The installer always offers the destination page (local build, not upstream): pick the default folder or type your own — the install path is never forced.
+- Upgrades remove the previous release by themselves (local build, not upstream). When the installer finds an installed older version, it asks the running app to close through its own update path (saving the config and restoring the desktop icons), then silently runs the previous release's `unins000.exe` and installs the new version — no prompts, no decisions for the user during that step. A newer installed release is never removed to install an older one, and the configuration folder survives the round-trip.
+
+## 0.2.4
 
 - **The product is now called Nodra** (local build, not upstream). The settings window, tray, installer, task-manager entries and file properties show the new name; the internal identity (install identity, configuration folder, autostart entry) is unchanged, so an installed PecoFence upgrades in place and every setting, fence and rule survives. The in-app GitHub Star / feedback links and the update check point to this fork's repository instead of upstream.
-- New application icon, and a contact address for the fork: yz13133916714@163.com, shown in 关于 and with the feedback form (local build, not upstream).
+- New application icon, and a contact address for the fork: 13133916714@163.com, shown in 关于 and with the feedback form (local build, not upstream).
 - The example themes are replaced with ten themes after GitHub's favourite palettes (local build, not upstream): 摩卡拿铁 (Catppuccin Mocha & Latte), 东京之夜 (Tokyo Night), 北欧极光 (Nord), 德古拉 (Dracula), 玫瑰松林 (Rosé Pine & Dawn), 常青之森 (Everforest), 月之暗面 (One Dark), 熔金暖石 (Gruvbox), 神奈冲浪 (Kanagawa) and 午夜代码 (GitHub Dark). Each sets its palette's accent, glass tint, text colours, tab and selection colours in both colour modes.
 - The watchdog now notices a hung instance and recovers it (local build, not upstream). While the app runs, the watchdog pings one of its windows every 20 s; two unanswered pings terminate the stuck instance, and an abnormal exit restarts the app (a clean quit still just exits, no restart during shutdown, and an instance that dies within 30 s of the watchdog's start — a crash loop — is not restarted).
 - Seven more example themes ship with a new `themes` folder (local build, not upstream; replaced by the ten-palette set above in this build).

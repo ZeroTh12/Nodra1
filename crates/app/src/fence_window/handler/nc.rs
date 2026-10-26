@@ -151,7 +151,41 @@ pub(super) fn on_nchittest(
         _ if top < title_h || in_rail => msg::HTCAPTION,
         _ => msg::HTCLIENT,
     };
+    // A capsule's corners are outside the plate. They must not take clicks (a click there
+    // reads as part of the fence and would drag or focus it), so pass them through; the
+    // resize-edge strips keep working, so the window stays grabbable everywhere.
+    if v.shape == pecofence_core::FenceShape::Capsule
+        && !matches!(
+            code,
+            msg::HTLEFT
+                | msg::HTRIGHT
+                | msg::HTTOP
+                | msg::HTBOTTOM
+                | msg::HTTOPLEFT
+                | msg::HTTOPRIGHT
+                | msg::HTBOTTOMLEFT
+                | msg::HTBOTTOMRIGHT
+        )
+        && !inside_capsule(
+            left as f32,
+            top as f32,
+            w as f32,
+            (h - v.plate_inset_px).max(1) as f32,
+            v.plate_inset_px as f32,
+        )
+    {
+        return Some(msg::HTTRANSPARENT);
+    }
     Some(code)
+}
+
+/// Point inside the capsule the plate occupies (`top` is the plate's inset from the window
+/// top; the radius is the same half-shorter-side clamp the clip applies).
+fn inside_capsule(x: f32, y: f32, w: f32, h: f32, top: f32) -> bool {
+    let r = (w.min(h) * 0.5).max(0.0);
+    let dx = (x - w * 0.5).abs() - (w * 0.5 - r);
+    let dy = (y - (top + h * 0.5)).abs() - (h * 0.5 - r);
+    dx.max(0.0).hypot(dy.max(0.0)) + dx.max(dy).min(0.0) - r <= 0.0
 }
 
 pub(super) fn on_ncmousemove(
@@ -473,7 +507,9 @@ pub(super) fn on_ncrbuttonup(
 }
 
 pub(super) fn on_size(h: &HandlerCtx, hwnd: HWND, _wparam: usize, lparam: isize) -> Option<isize> {
-    let HandlerCtx { view, .. } = h;
+    let HandlerCtx {
+        view, in_size_move, ..
+    } = h;
     let started = Instant::now();
     let w = msg::lo_i16(lparam);
     let h = msg::hi_i16(lparam);
@@ -484,15 +520,34 @@ pub(super) fn on_size(h: &HandlerCtx, hwnd: HWND, _wparam: usize, lparam: isize)
         v.apply_dpi(monitors::dpi_for_window(hwnd));
         v.update_backdrop();
         let crop_done = Instant::now();
+        // In the system size loop Windows sends one WM_SIZE per pointer move. Re-laying out the
+        // cell grid for every one of them (grid, labels, icons, motion) made the edge trail the
+        // pointer: the loop cannot send the next size until this handler returns. So the chrome
+        // — plate, rim, clip — follows every message, and the grid re-flows at most once per
+        // RESIZE_CONTENT_MS, then once more when the drag ends.
+        let dragging = in_size_move.get() && !v.height_animating();
+        let grid_due = v
+            .resize_content_at
+            .is_none_or(|t| started.duration_since(t).as_millis() >= RESIZE_CONTENT_MS);
         let drawn = if v.height_animating() {
             // Frame-clock resize: the content surface is frozen at its
             // expanded size; only the chrome (backdrop, rim) follows.
             v.update_shape_clip(w, h)
                 .and_then(|_| v.chrome_panel.resize(w, h))
                 .and_then(|_| v.draw_chrome_panel())
+        } else if dragging && !grid_due {
+            // Throttled beat: the grid catches up on TIMER_RESIZE_SETTLE (or on
+            // WM_EXITSIZEMOVE), so only the shell of the fence follows the pointer now.
+            v.resize_pending = Some((w, h));
+            window::set_timer(hwnd, TIMER_RESIZE_SETTLE, RESIZE_CONTENT_MS as u32);
+            v.update_shape_clip(w, h)
+                .and_then(|_| v.chrome_panel.resize(w, h))
+                .and_then(|_| v.draw_chrome_panel())
         } else {
             // The cell grid is re-laid out for the new width: old origins
             // would glide to the wrong places.
+            v.resize_content_at = Some(started);
+            v.resize_pending = None;
             v.snap_item_motion();
             v.layout_panels(w, h).and_then(|_| v.redraw())
         };
@@ -589,6 +644,10 @@ pub(super) fn on_entersizemove(
         && let Some(v) = guard.as_mut()
     {
         v.height_anim = None;
+        // The first size of this drag always re-lays out, so the grid starts in step with
+        // the pointer (see the throttle in `on_size`).
+        v.resize_content_at = None;
+        v.resize_pending = None;
     }
     let (r, pt) = (window::window_rect(hwnd), window::cursor_pos());
     let caption = move_start.take();
@@ -670,6 +729,7 @@ pub(super) fn on_exitsizemove(
         }
     }
     let hinted = merge_target.replace(0) != 0;
+    window::kill_timer(hwnd, TIMER_RESIZE_SETTLE);
     let peeking = {
         let mut guard = view.borrow_mut();
         match guard.as_mut() {
@@ -679,6 +739,14 @@ pub(super) fn on_exitsizemove(
                 if !v.rolled_up && !v.height_animating() {
                     v.expanded_h_px = rect.bottom - rect.top;
                 }
+                // The drag is over: a grid re-layout the throttle postponed lands now, so the
+                // fence shows its final content instead of the beat it froze on.
+                if let Some((nw, nh)) = v.resize_pending.take() {
+                    if let Err(error) = v.layout_panels(nw, nh).and_then(|_| v.redraw()) {
+                        tracing::warn!(%error, "final resize layout failed");
+                    }
+                }
+                v.resize_content_at = None;
                 v.peeking
             }
             None => false,
@@ -807,7 +875,7 @@ pub(super) fn on_sizing(h: &HandlerCtx, hwnd: HWND, wparam: usize, lparam: isize
         others: &others,
         work: work.as_ref(),
         gap: (behavior.snap_gap_dip.get() as f32 * scale).round() as i32,
-        dist: (SNAP_DIST_DIP as f32 * scale) as i32,
+        dist: (SNAP_DIST_DIP as f32 * scale).round() as i32,
         align: !snap_paused(),
     });
     let guides = size_among(
@@ -871,8 +939,8 @@ pub(super) fn on_moving(
         let scale = monitors::dpi_for_window(hwnd).max(96) as f32 / 96.0;
         let snap = (behavior.snapping.get() && !snap_paused()).then(|| {
             (
-                (behavior.snap_gap_dip.get() as f32 * scale) as i32,
-                (SNAP_DIST_DIP as f32 * scale) as i32,
+                (behavior.snap_gap_dip.get() as f32 * scale).round() as i32,
+                (SNAP_DIST_DIP as f32 * scale).round() as i32,
             )
         });
         let others = fence_rects_outside(hwnd, &group);
@@ -898,14 +966,14 @@ pub(super) fn on_moving(
         guides = snap_rect(
             rect,
             hwnd,
-            (behavior.snap_gap_dip.get() as f32 * scale) as i32,
-            (SNAP_DIST_DIP as f32 * scale) as i32,
+            (behavior.snap_gap_dip.get() as f32 * scale).round() as i32,
+            (SNAP_DIST_DIP as f32 * scale).round() as i32,
         );
     }
     let radius = view
         .try_borrow()
         .ok()
-        .and_then(|g| g.as_ref().map(|v| v.theme.corner_radius))
+        .and_then(|g| g.as_ref().map(|v| v.shape_radius()))
         .unwrap_or(8.0);
     update_drag_feedback(behavior, hwnd, rect, merge, &guides, radius);
     // Re-sent while the pointer moves along a target's strip so the

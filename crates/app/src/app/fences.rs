@@ -220,6 +220,12 @@ impl App {
             .unwrap_or((None, 1.0));
         w.set_appearance(bd, op);
         w.set_title_on_hover(f.appearance.as_ref().and_then(|a| a.title_on_hover));
+        w.set_shape(
+            f.appearance
+                .as_ref()
+                .map(|a| a.shape)
+                .unwrap_or_default(),
+        );
         w.set_style(fence_style_for(&f));
         if let Some(a) = self.anchor.borrow_mut().as_mut() {
             a.set_quick_hide_excluded(w.hwnd(), f.exclude_from_quick_hide);
@@ -680,7 +686,7 @@ impl App {
         }
         tracing::warn!("fence limit reached; new fence refused");
         if let Some(t) = &self.tray {
-            t.show_info("PecoFence", &fence_limit_text(), true);
+            t.show_info("Nodra", &fence_limit_text(), true);
         }
         false
     }

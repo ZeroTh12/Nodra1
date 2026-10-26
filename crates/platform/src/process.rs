@@ -59,6 +59,18 @@ pub fn current_pid() -> u32 {
     unsafe { GetCurrentProcessId() }
 }
 
+/// Raises this process's scheduling priority to Above Normal. At sign-in every startup app
+/// competes for CPU at Normal priority; the desktop fences must draw before the user starts
+/// clicking icons, so they get a boost. Above Normal stays below the foreground-boosted
+/// games and compilers a user may run later, and needs no administrator rights. Returns
+/// `false` when the system refused (harmless; startup continues at Normal priority).
+pub fn raise_priority_above_normal() -> bool {
+    windows_core::link!("kernel32.dll" "system" fn SetPriorityClass(hprocess: HANDLE, dpriorityclass: u32) -> windows_core::BOOL);
+    const ABOVE_NORMAL_PRIORITY_CLASS: u32 = 0x0000_8000;
+    // SAFETY: GetCurrentProcess returns a pseudo handle that needs no closing.
+    unsafe { SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS).as_bool() }
+}
+
 /// Lets any process take the foreground window from this one, e.g. the running instance that
 /// a second launch asks to show its settings. Only works while this process may set it.
 pub fn allow_foreground_handoff() {

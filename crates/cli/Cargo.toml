@@ -3,7 +3,7 @@ name = "pecofence-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "PecoFence command-line control for terminals and coding agents."
+description = "Nodra command-line control for terminals and coding agents."
 build = "build.rs"
 
 [[bin]]

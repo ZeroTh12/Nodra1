@@ -7,6 +7,7 @@
 //! (icon size, spacing, portal flags) act on the fence itself, exactly like the menu did.
 
 use super::*;
+use pecofence_core::FenceShape;
 
 /// Fences-style colour choices for the per-fence tint (name, rgb); the settings page builds
 /// its 色调 options from this list (`tintPalette` in the state JSON).
@@ -71,6 +72,7 @@ pub(super) const FENCE_PROPS: &[&str] = &[
     "portalNavigate",
     "portalTitleIcon",
     "hideWhenEmpty",
+    "shape",
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -111,6 +113,7 @@ pub(super) enum FenceProp {
     Reverse(bool),
     GroupByDate(bool),
     LabelLines(u8),
+    Shape(FenceShape),
 }
 
 /// Parses `prop` / `value` as the settings page and `fence get` spell them. Unknown property
@@ -240,6 +243,16 @@ pub(super) fn parse_fence_prop(
         "portalNavigate" => FenceProp::PortalNavigate(as_bool()?),
         "portalTitleIcon" => FenceProp::PortalTitleIcon(as_bool()?),
         "hideWhenEmpty" => FenceProp::HideWhenEmpty(as_bool()?),
+        "shape" => {
+            const ALLOWED: &[&str] = &["theme", "round", "extraRound", "capsule"];
+            FenceProp::Shape(match as_str(ALLOWED)? {
+                "theme" => FenceShape::Theme,
+                "round" => FenceShape::Round,
+                "extraRound" => FenceShape::ExtraRound,
+                "capsule" => FenceShape::Capsule,
+                _ => return Err(bad(ALLOWED)),
+            })
+        }
         _ => {
             return Err(IpcError::invalid_value(
                 format!("unknown fence property {prop:?}"),
@@ -285,6 +298,16 @@ impl App {
         self.state.set_locked(host, on);
         if let Some(w) = self.fences.get(&host) {
             w.set_locked(on);
+        }
+        self.schedule_save();
+    }
+
+    /// 外观 → 形状: the fence's silhouette (window-level, so a tab takes its host's).
+    pub(super) fn set_fence_shape(&mut self, fence: FenceId, shape: FenceShape) {
+        let host = self.state.host_of(fence);
+        self.state.set_shape(host, shape);
+        if let Some(w) = self.fences.get(&host) {
+            w.set_shape(shape);
         }
         self.schedule_save();
     }
@@ -506,6 +529,12 @@ impl App {
             "titleSize": title_size,
             "titleOnHover": title_on_hover,
             "hideWhenEmpty": f.hide_when_empty,
+            "shape": match h.appearance.as_ref().map(|a| a.shape).unwrap_or_default() {
+                FenceShape::Theme => "theme",
+                FenceShape::Round => "round",
+                FenceShape::ExtraRound => "extraRound",
+                FenceShape::Capsule => "capsule",
+            },
             "portal": portal,
         })
     }
@@ -630,6 +659,9 @@ impl App {
                 self.apply_cell_snap(fence);
                 self.apply_auto_height(fence);
                 self.schedule_save();
+            }
+            FenceProp::Shape(shape) => {
+                self.set_fence_shape(fence, shape);
             }
         }
         let after = (

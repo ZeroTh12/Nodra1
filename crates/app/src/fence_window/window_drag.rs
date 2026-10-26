@@ -59,6 +59,7 @@ pub(super) fn flush_window_drag(
             .roll_anim
             .as_ref()
             .map(|a| a.height.value_at(now).round() as i32);
+        let radius = v.shape_radius();
         let Some(drag) = v.remote_drag.as_mut() else {
             return false;
         };
@@ -83,7 +84,7 @@ pub(super) fn flush_window_drag(
             v.behavior.snap_gap_dip.get(),
             (drag.hwnd == controller).then_some(height).flatten(),
             v.behavior.clone(),
-            v.theme.corner_radius,
+            radius,
             match &drag.origin {
                 WindowDragOrigin::Caption { rect, .. } if !drag.group.is_empty() => {
                     Some((*rect, drag.group.clone()))
@@ -113,8 +114,8 @@ pub(super) fn flush_window_drag(
     if let Some((start, members)) = &group {
         let scale = monitors::dpi_for_window(target_hwnd).max(96) as f32 / 96.0;
         let snap = (snapping && !snap_paused()).then_some((
-            (gap_dip as f32 * scale) as i32,
-            (SNAP_DIST_DIP as f32 * scale) as i32,
+            (gap_dip as f32 * scale).round() as i32,
+            (SNAP_DIST_DIP as f32 * scale).round() as i32,
         ));
         let others = fence_rects_outside(target_hwnd, members);
         (placed, guides) = place_group(&mut rect, start, members, &others, work_area_under, snap);
@@ -123,8 +124,8 @@ pub(super) fn flush_window_drag(
         guides = snap_rect(
             &mut rect,
             target_hwnd,
-            (gap_dip as f32 * scale) as i32,
-            (SNAP_DIST_DIP as f32 * scale) as i32,
+            (gap_dip as f32 * scale).round() as i32,
+            (SNAP_DIST_DIP as f32 * scale).round() as i32,
         );
     }
     let snap_done = Instant::now();

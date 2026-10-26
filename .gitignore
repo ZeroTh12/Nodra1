@@ -39,3 +39,7 @@ Thumbs.db
 
 # Claude Code session files and agent worktrees
 .claude/
+
+# WorkBuddy local notes
+/.workbuddy/
+/certs/
