@@ -33,7 +33,11 @@ AppPublisher=Nodra Project
 AppPublisherURL=https://github.com/{#Repository}
 AppSupportURL=https://github.com/{#Repository}/issues
 AppUpdatesURL=https://github.com/{#Repository}/releases
-DefaultDirName={localappdata}\Programs\{#ProductName}
+; The default folder is the folder of the copy that is already on this PC: the running
+; instance (a portable copy included), then any registered install (HKCU/HKLM, both
+; views, current and legacy AppIds). Only when nothing is found does it fall back to
+; the per-user Programs folder.
+DefaultDirName={code:GetDefaultDir}
 DefaultGroupName={#ProductName}
 ; Always offer the destination page: the user picks the default folder or types their own.
 DisableDirPage=no
@@ -140,15 +144,21 @@ ru.DeleteUserData=Удалить также настройки и области
 
 [Code]
 const
-  UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#ProductId}_is1';
+  UninstallRoot = 'Software\Microsoft\Windows\CurrentVersion\Uninstall';
+  LeafCurrent = '{#ProductId}_is1';
+  UninstallKey = UninstallRoot + '\' + LeafCurrent;
   RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
   ControlWindowClass = 'PecoFence.Control';
   WM_QUERYENDSESSION = $0011;
   WM_ENDSESSION = $0016;
   ENDSESSION_CLOSEAPP = $00000001;
+  PathSep = '|';
 
 var
   Updating, Installed, OldRemoved: Boolean;
+  { Detection result: every folder an earlier copy was installed into, PathSep-separated. }
+  PreviousDirs, PreviousDir: String;
+  DetectionDone: Boolean;
 
 function OpenProcess(Access: DWORD; Inherit: BOOL; Pid: DWORD): THandle;
   external 'OpenProcess@kernel32.dll stdcall';
@@ -162,6 +172,175 @@ function FindWindowW(ClassName: String; WindowName: String): THandle;
   external 'FindWindowW@user32.dll stdcall';
 function PostMessageW(Wnd: THandle; Msg: DWORD; WParam: DWORD; LParam: DWORD): BOOL;
   external 'PostMessageW@user32.dll stdcall';
+function GetWindowThreadProcessId(Wnd: THandle; var ProcessId: DWORD): DWORD;
+  external 'GetWindowThreadProcessId@user32.dll stdcall';
+function QueryFullProcessImageNameW(Process: THandle; Flags: DWORD; ExeName: String;
+  var Size: DWORD): BOOL;
+  external 'QueryFullProcessImageNameW@kernel32.dll stdcall';
+
+{ ---------------------------------------------------------------- previous install }
+
+{ Walks a PathSep-separated list one entry at a time: the entry is cut off the front of
+  List. Character by character, because Pos is unreliable on non-ASCII paths and a
+  user folder is often named in the user's own language. }
+function NextEntry(var List: String): String;
+var
+  I: Integer;
+begin
+  for I := 1 to Length(List) do
+    if Copy(List, I, 1) = PathSep then begin
+      Result := Copy(List, 1, I - 1);
+      Delete(List, 1, I);
+      exit;
+    end;
+  Result := List;
+  List := '';
+end;
+
+function AlreadyListed(const Dir: String): Boolean;
+var
+  Remaining, Part: String;
+begin
+  Result := False;
+  Remaining := PreviousDirs;
+  while Remaining <> '' do begin
+    Part := NextEntry(Remaining);
+    if CompareText(Part, Dir) = 0 then begin
+      Result := True;
+      exit;
+    end;
+  end;
+end;
+
+{ Adds `Dir` to the folder list once, keeping the first one as the preferred folder (the
+  one a silent upgrade installs into). Only folders that really hold a Nodra copy are
+  taken: a registration left behind after the folder was deleted by hand must not pin
+  anything. }
+procedure AddCandidateDir(const Dir: String);
+var
+  D: String;
+begin
+  D := RemoveBackslashUnlessRoot(Trim(Dir));
+  if (D = '') or (Length(D) <= 3) or not DirExists(D) then
+    exit;
+  if not (FileExists(AddBackslash(D) + 'pecofence.exe') or
+    FileExists(AddBackslash(D) + 'unins000.exe')) then
+    exit;
+  if AlreadyListed(D) then
+    exit;
+  if PreviousDirs = '' then
+    PreviousDirs := D
+  else
+    PreviousDirs := PreviousDirs + PathSep + D;
+  if PreviousDir = '' then
+    PreviousDir := D;
+end;
+
+{ Path of the running instance, portable copies included: the folder it was started
+  from is the folder to upgrade in place. }
+function RunningAppDir: String;
+var
+  Wnd: THandle;
+  Pid: DWORD;
+  Proc: THandle;
+  Buf: String;
+  Size: DWORD;
+begin
+  Result := '';
+  Wnd := FindWindowW(ControlWindowClass, 'Nodra');
+  if Wnd = 0 then
+    Wnd := FindWindowW(ControlWindowClass, 'PecoFence');
+  if Wnd = 0 then
+    exit;
+  Pid := 0;
+  GetWindowThreadProcessId(Wnd, Pid);
+  if Pid = 0 then
+    exit;
+  Proc := OpenProcess($1000 { PROCESS_QUERY_LIMITED_INFORMATION }, False, Pid);
+  if Proc = 0 then
+    exit;
+  Size := 1024;
+  Buf := StringOfChar(#0, Size);
+  if QueryFullProcessImageNameW(Proc, 0, Buf, Size) then
+    Result := ExtractFileDir(Copy(Buf, 1, Size));
+  CloseHandle(Proc);
+end;
+
+function UnquotedPath(S: String): String;
+begin
+  Result := Trim(S);
+  if Copy(Result, 1, 1) = '"' then begin
+    Delete(Result, 1, 1);
+    while (Result <> '') and (Copy(Result, Length(Result), 1) = '"') do
+      Delete(Result, Length(Result), 1);
+  end;
+end;
+
+function RegistryString(RootKey: Integer; const Leaf, Value: String): String;
+begin
+  Result := '';
+  RegQueryStringValue(RootKey, UninstallRoot + '\' + Leaf, Value, Result);
+end;
+
+{ Every installer identity and, for each, the folder its registration or its uninstaller
+  points at. `InstallLocation` is authoritative; `UninstallString` covers registrations
+  written before the app published that value. }
+procedure ScanLeaf(RootKey: Integer; const Leaf: String);
+var
+  Dir: String;
+begin
+  Dir := RegistryString(RootKey, Leaf, 'InstallLocation');
+  AddCandidateDir(Dir);
+  Dir := RegistryString(RootKey, Leaf, 'UninstallString');
+  if Dir <> '' then
+    AddCandidateDir(ExtractFileDir(UnquotedPath(Dir)));
+end;
+
+procedure ScanUninstallHive(RootKey: Integer);
+begin
+  ScanLeaf(RootKey, LeafCurrent);
+#ifndef TestIdentity
+  { Production setups also adopt a copy installed by one of the older identities. The
+    test identity must only ever see its own registration. }
+  ScanLeaf(RootKey, 'DayuanJiang.PecoFence_is1');
+  ScanLeaf(RootKey, 'openFence_is1');
+#endif
+end;
+
+{ Every installed copy on this PC: the running one, then HKCU/HKLM 32- and 64-bit. }
+procedure DetectPreviousInstall;
+begin
+  if DetectionDone then
+    exit;
+  DetectionDone := True;
+  PreviousDirs := '';
+  PreviousDir := '';
+#ifndef TestIdentity
+  { A portable copy has no registration: the running app is the only trace of it. }
+  AddCandidateDir(RunningAppDir);
+#endif
+  ScanUninstallHive(HKCU);
+  ScanUninstallHive(HKLM32);
+  if IsWin64 then
+    ScanUninstallHive(HKLM64);
+#ifdef TestIdentity
+  { The integration test hands in a leftover copy here, standing in for one that the
+    production build finds through the legacy registrations. }
+  AddCandidateDir(ExpandConstant('{param:EXTRAINSTALL|}'));
+#endif
+  Log(Format('previous copies: %s', [PreviousDirs]));
+end;
+
+{ The default folder comes from GetDefaultDir above: inheriting the existing folder is
+  what makes an upgrade an upgrade instead of a second installation next to the old one. }
+function GetDefaultDir(Param: String): String;
+begin
+  DetectPreviousInstall;
+  if PreviousDir <> '' then
+    Result := PreviousDir
+  else
+    Result := ExpandConstant('{localappdata}\Programs\{#ProductName}');
+end;
 
 { /UPDATE=<pid>,<pid>...: started by Nodra's updater, which exits right away. Wait, 30 s
   at most in all, until it, its watchdogs and its instance lock are gone, so no file is
@@ -288,36 +467,38 @@ begin
     RemoveBackslashUnlessRoot(ExpandFileName(Right))) = 0;
 end;
 
+{ The uninstaller of a copy in Dir, restored to unins000.exe after an upgrade that
+  could not overwrite it, hence the search instead of one fixed name. }
+function AnyUninstaller(const Dir: String): String;
+var
+  I: Integer;
+  Number: String;
+begin
+  Result := '';
+  for I := 0 to 99 do begin
+    Number := IntToStr(I);
+    while Length(Number) < 3 do
+      Number := '0' + Number;
+    if FileExists(AddBackslash(Dir) + 'unins' + Number + '.exe') then begin
+      Result := AddBackslash(Dir) + 'unins' + Number + '.exe';
+      exit;
+    end;
+  end;
+end;
+
 { Uninstalls the previous release with its own unins000.exe, silently and without
   any user interaction, before this one is installed. The configuration lives
   outside the install folder and survives both. Returns True when the previous
   release was removed (its uninstall key is gone afterwards). }
 function RemovePreviousRelease: Boolean;
 var
-  UninstCmd, PreviousVersion: String;
+  Remaining, Dir, UninstCmd, Registered, PreviousVersion: String;
   PreviousNumber, NewNumber: Int64;
-  ExitCode: Integer;
+  ExitCode, Tries: Integer;
   Newer: Boolean;
 begin
   Result := False;
-  ExitCode := -1;
-  if not RegQueryStringValue(HKCU, UninstallKey, 'UninstallString', UninstCmd) then begin
-    Log('previous release: no UninstallString in the uninstall key');
-    exit;
-  end;
-  if UninstCmd = '' then
-    exit;
-  { Strip the quotes UninstallString wraps the path in. Pos is unreliable on paths
-    with non-ASCII characters, so peel the quotes off the ends by direct comparison. }
-  if Copy(UninstCmd, 1, 1) = '"' then begin
-    Delete(UninstCmd, 1, 1);
-    while (UninstCmd <> '') and (Copy(UninstCmd, Length(UninstCmd), 1) = '"') do
-      Delete(UninstCmd, Length(UninstCmd), 1);
-  end;
-  if (UninstCmd = '') or not FileExists(UninstCmd) then begin
-    Log(Format('previous release: uninstaller not usable: %s', [UninstCmd]));
-    exit;
-  end;
+  DetectPreviousInstall;
   { Never uninstall a newer release to install an older one over it. }
   Newer := False;
   if RegQueryStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion) then
@@ -328,12 +509,49 @@ begin
     Log('a newer release is installed; not removing it');
     exit;
   end;
-  Log(Format('removing the previous release with %s', [UninstCmd]));
-  if Exec(UninstCmd, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_SHOWNORMAL,
-    ewWaitUntilTerminated, ExitCode) then
-    Result := ExitCode = 0;
-  Sleep(500);
-  Log(Format('previous-release uninstaller exit code: %d', [ExitCode]));
+  { Prefer the uninstaller the registration names (it knows the shortcuts, startup value
+    and registry entries it wrote). Any other copy a registration or the running app
+    points at is removed as well: after this, no old build is left on the PC. }
+  Registered := RegistryString(HKCU, LeafCurrent, 'UninstallString');
+  if PreviousDirs = '' then
+    exit;
+  Remaining := PreviousDirs;
+  while Remaining <> '' do begin
+    Dir := NextEntry(Remaining);
+    UninstCmd := '';
+    if (Registered <> '') and
+      SameDirectory(ExtractFileDir(UnquotedPath(Registered)), Dir) then
+      UninstCmd := UnquotedPath(Registered)
+    else
+      UninstCmd := AnyUninstaller(Dir);
+    if (UninstCmd <> '') and FileExists(UninstCmd) then begin
+      Log(Format('removing the copy in %s with %s', [Dir, UninstCmd]));
+      ExitCode := -1;
+      if Exec(UninstCmd, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_SHOWNORMAL,
+        ewWaitUntilTerminated, ExitCode) then
+        Result := Result or (ExitCode = 0);
+      { Inno's uninstaller starts a temporary copy of itself and that copy does the
+        work, so the exit above comes long before the files are gone. Wait for the
+        uninstaller to delete itself; installing over files it still holds and deletes
+        would race (and leave unins000.exe, unins001.exe, ... behind). }
+      for Tries := 0 to 150 do begin
+        if AnyUninstaller(Dir) = '' then
+          break;
+        Sleep(100);
+      end;
+      Log(Format('previous-release uninstaller exit code: %d', [ExitCode]));
+    end else
+      Log(Format('previous copy in %s has no uninstaller', [Dir]));
+    { A folder this setup does not install into (a copy registered by an older identity,
+      an extracted ZIP the user started, ...) must not keep a stale build behind. Only
+      folders that held our executable get here, and the new folder is left to [Files]. }
+    if not SameDirectory(Dir, ExpandConstant('{app}')) and
+      FileExists(AddBackslash(Dir) + 'pecofence.exe') then begin
+      Log(Format('deleting the leftover copy in %s', [Dir]));
+      DelTree(Dir, True, True, True);
+      Result := True;
+    end;
+  end;
 end;
 
 function DirectoryHasEntries(const Path: String): Boolean;
@@ -357,26 +575,29 @@ end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  PreviousDir, PreviousVersion: String;
+  RegisteredDir, PreviousVersion: String;
   PreviousNumber, NewNumber: Int64;
 begin
   Result := '';
   OldRemoved := False;
+  DetectPreviousInstall;
 
 #ifndef TestIdentity
   { A running instance would keep files and locks busy through both the old
     uninstaller and this install. }
   CloseRunningAppGracefully;
 #endif
-  OldRemoved := RemovePreviousRelease;
+  { The install folder is the folder the existing copy lives in (GetDefaultDir). A
+    different folder would leave the old copy behind and put a second installation next
+    to it: refuse instead of scattering copies. }
+  if (PreviousDir <> '') and not SameDirectory(PreviousDir, ExpandConstant('{app}')) then begin
+    Result := FmtMessage(CustomMessage('AlreadyInstalled'), [RemoveBackslashUnlessRoot(PreviousDir)]);
+    Exit;
+  end;
 
   { A registration whose folder was deleted by hand no longer pins the location. }
-  if RegQueryStringValue(HKCU, UninstallKey, 'InstallLocation', PreviousDir) and
-    DirExists(PreviousDir) then begin
-    if not SameDirectory(PreviousDir, ExpandConstant('{app}')) then begin
-      Result := FmtMessage(CustomMessage('AlreadyInstalled'), [RemoveBackslashUnlessRoot(PreviousDir)]);
-      Exit;
-    end;
+  if RegQueryStringValue(HKCU, UninstallKey, 'InstallLocation', RegisteredDir) and
+    DirExists(RegisteredDir) then
     if RegQueryStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion) then begin
       { Compare the numeric release version; prerelease suffixes do not affect ordering. }
       if Pos('-', PreviousVersion) > 0 then
@@ -386,11 +607,16 @@ begin
         if ComparePackedVersion(PreviousNumber, NewNumber) > 0 then
           Result := CustomMessage('NewerVersion');
     end;
-  end else if (not OldRemoved) and DirectoryHasEntries(ExpandConstant('{app}')) and
+  if Result <> '' then
+    Exit;
+
+  OldRemoved := RemovePreviousRelease;
+
+  { A folder the ZIP was extracted into is upgraded in place; unrelated files are not.
+    After RemovePreviousRelease the emptied folder is the old install location, so a
+    leftover unrelated file must not block the reinstall. }
+  if (not OldRemoved) and DirectoryHasEntries(ExpandConstant('{app}')) and
     not FileExists(ExpandConstant('{app}\pecofence.exe')) then
-    { A folder the ZIP was extracted into is upgraded in place; unrelated files are not.
-      After RemovePreviousRelease the emptied folder is the old install location, so a
-      leftover unrelated file must not block the reinstall. }
     Result := CustomMessage('InvalidDestination');
 end;
 

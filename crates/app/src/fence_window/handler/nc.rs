@@ -282,9 +282,12 @@ pub(super) fn on_ncmouseleave(
     // and a later release on the title must not act on the old press.
     h.ncrbutton_press.set(false);
     let mut guard = view.borrow_mut();
+    // 同 WM_MOUSELEAVE：真正离开窗口时立刻收起 hover peek，不等 400ms 定时器。
+    let mut close_peek_now = false;
     if let Some(v) = guard.as_mut() {
         v.click_pending = None;
         if !inside {
+            close_peek_now = v.peeking;
             v.set_mouse_inside(false);
             // 贴边隐藏：鼠标离开栅栏非客户区 → 启延迟隐藏流程。需要设置开启。
             // 菜单打开期间（右键上下文菜单模态循环）不滑出，避免 owner 被移走后卡死。
@@ -303,6 +306,10 @@ pub(super) fn on_ncmouseleave(
         if v.peeking {
             window::set_timer(hwnd, TIMER_PEEK_CLOSE, PEEK_CLOSE_MS);
         }
+    }
+    if close_peek_now {
+        drop(guard);
+        timers::on_timer_peek_close(h, hwnd, TIMER_PEEK_CLOSE, 0);
     }
     None
 }

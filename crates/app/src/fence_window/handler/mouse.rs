@@ -50,8 +50,13 @@ pub(super) fn on_mouseleave(
         peek_armed.set(false);
     }
     let mut guard = view.borrow_mut();
+    // 鼠标真正离开窗口时立刻收起 hover peek：不再等 400ms 的 PEEK_CLOSE 定时器，
+    // 用户看到的"离开就折叠"不再有延迟。窗口内部的 WM_MOUSELEAVE（从内容区移到
+    // 标题栏）仍然只挂定时器，避免把鼠标移向关闭按钮 / 标签时误收起。
+    let mut close_peek_now = false;
     if let Some(v) = guard.as_mut() {
         if !inside {
+            close_peek_now = v.peeking;
             v.set_mouse_inside(false);
             // 贴边隐藏：鼠标离开贴边栅栏 → 选边 + 启延迟定时器。需要设置开启。
             let enabled = h.behavior.edge_hide_enabled.get();
@@ -101,6 +106,11 @@ pub(super) fn on_mouseleave(
         if v.peeking {
             window::set_timer(hwnd, TIMER_PEEK_CLOSE, PEEK_CLOSE_MS);
         }
+    }
+    if close_peek_now {
+        drop(guard);
+        // 与定时器走同一套判断（弹窗 / 拖动 / 左键按下 / 被推开的栅栏仍然算在内部）。
+        timers::on_timer_peek_close(h, hwnd, TIMER_PEEK_CLOSE, 0);
     }
     Some(0)
 }

@@ -28,9 +28,14 @@ Releases offer `pecofence-v<version>-x64-portable.zip` and
 settings in `%APPDATA%\PecoFence`, so switching keeps your fences, rules and
 settings. Exit PecoFence from its tray menu first.
 
-- **ZIP to installer:** run the setup EXE. It can install into the folder you
-  extracted the ZIP into and replaces the program files there. If you install
-  somewhere else, you can delete the old ZIP folder afterwards.
+Upgrading an installed copy works the same way: the setup silently uninstalls the
+old version first and keeps its folder, so the files are replaced in place.
+
+- **ZIP to installer:** run the setup EXE. It offers the folder you extracted the
+  ZIP into, and it removes that ZIP copy (silently, through its uninstaller when
+  it has one) before the program files are installed, so no second copy is left
+  behind. Installing into another folder is refused while a copy is present:
+  uninstall it first if you really want it elsewhere.
 - **Installer to ZIP:** uninstall through Windows Settings (your data is kept),
   then extract the ZIP and run `pecofence.exe`.
 - If you started the ZIP with `--portable`, its configuration is in the `config`
