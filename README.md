@@ -1,4 +1,4 @@
-https://github.com/user-attachments/assets/c827f059-cfd7-4f6a-bed3-8b00411a7220
+
 
 > [!NOTE]
 > **Nodra** · 基于 [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) 的社区定制版
