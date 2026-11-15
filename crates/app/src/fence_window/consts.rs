@@ -48,10 +48,33 @@ pub(super) const TIMER_MOVE_RBUTTON: usize = 46;
 /// Settles the cell grid after the system size loop throttled its re-layout (`nc::on_size`):
 /// the edge follows the pointer every message, the grid catches up between them.
 pub(super) const TIMER_RESIZE_SETTLE: usize = 47;
-/// Minimum spacing between two cell-grid re-layouts while the user drags a fence's edge. The
-/// chrome (plate, rim, clip) still follows every WM_SIZE, so the frame keeps up with the
-/// pointer; only the content re-flow waits one beat.
-pub(super) const RESIZE_CONTENT_MS: u128 = 60;
+
+// ── 贴边隐藏 Edge Auto-Hide ──────────────────────────────────────────────────────
+/// 鼠标离开栅栏后，栅栏还在屏幕上停留多久再滑走（ms）。800ms 够用户点进去又退开，
+/// 也能覆盖正常鼠标移动路径上短暂经过栅栏的情况。
+pub(super) const EDGE_HIDE_LINGER_MS: u32 = 800;
+/// 鼠标进入屏幕边缘感应区后，必须停多久才认定是"想把栅栏叫出来"（ms）。300ms 防抖，
+/// 快速扫过边缘不会误触。
+pub(super) const EDGE_HIDE_PROBE_MS: u32 = 300;
+/// 感应区厚度（DIP）。Windows 11 的"拖出边缘取消贴靠"也用 8 DIP 左右，选 10 留余量；
+/// 低于任务栏的边仍然用 MonitorInfo.work_area，所以感应区不会塞进任务栏。
+pub(super) const EDGE_HIDE_ZONE_DIP: i32 = 10;
+/// 贴边隐藏/滑出的总时长（ms）。250ms = Fluent 的容器变换曲线值，和 roll_up 对齐。
+pub(super) const EDGE_HIDE_DURATION_MS: u32 = 250;
+/// 栅栏完全滑出后，在屏幕外保留多少 DIP（避免 SetWindowPos 把它裁成 0 宽/高）。
+pub(super) const EDGE_HIDE_PEEK_DIP: i32 = 2;
+/// 栅栏滑出屏幕后，轮询鼠标是否进入感应区的间隔（ms）。用低频 WM_TIMER 而不是帧时钟：
+/// 静止的 GIF/壁纸一个像素都不动，60/120 Hz 的唤醒纯粹是浪费电；120 ms 的检测延迟在
+/// 300 ms 的停留判定里完全看不出来。
+pub(super) const EDGE_HIDE_POLL_MS: u32 = 120;
+pub(super) const TIMER_EDGE_HIDE_LINGER: usize = 51;
+pub(super) const TIMER_EDGE_HIDE_PROBE: usize = 52;
+pub(super) const TIMER_EDGE_HIDE_POLL: usize = 53;
+/// Minimum spacing between two cell-grid re-layouts while the user drags a fence's edge: one
+/// compositor frame. The chrome (plate, rim, clip) still follows every WM_SIZE, so the frame
+/// keeps up with the pointer; the content re-flows on the next beat, close enough that it never
+/// visibly trails the edge (the old 60 ms beat read as a stutter).
+pub(super) const RESIZE_CONTENT_MS: u128 = 16;
 /// DWM can suspend completion callbacks for fully occluded windows. UI state must still
 /// settle after the longest (250 ms) transition, independently of compositor visibility.
 pub(super) const COMPOSITION_FINISH_MS: u32 = 400;
@@ -94,10 +117,10 @@ pub(super) const WM_RBUTTONDBLCLK: u32 = 0x0206;
 pub const SC_MOVE_CAPTION: usize = 0xF012;
 
 /// Shadow bitmaps are re-uploaded (`UpdateLayeredWindow`, several ms for a large fence) at most
-/// this often while the body is being resized *interactively*; a trailing update catches the
-/// final geometry. Animated (frame-clock) resizes bypass the throttle so the shadow stays
-/// attached to the plate like a DWM shadow.
-pub(super) const SHADOW_MIN_INTERVAL_MS: u128 = 40;
+/// this often while the body is being resized *interactively*: one compositor frame, so the
+/// shadow stays attached to the plate instead of trailing behind it as a ghost. A trailing
+/// update catches the final geometry. Animated (frame-clock) resizes bypass the throttle.
+pub(super) const SHADOW_MIN_INTERVAL_MS: u128 = 16;
 /// Hover-peek closes this long after the pointer left (no Fluent reference value).
 pub(super) const PEEK_CLOSE_MS: u32 = 400;
 pub(super) const SNAP_DIST_DIP: i32 = 10;

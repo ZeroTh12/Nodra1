@@ -127,6 +127,16 @@ fr.NewerVersion=Une version plus récente de Nodra est déjà installée. Pour i
 es.NewerVersion=Ya hay una versión más reciente de Nodra instalada. Para instalar esta versión anterior, desinstálala primero. Tus ajustes y grupos se conservan.
 pt_BR.NewerVersion=Uma versão mais recente do Nodra já está instalada. Para instalar esta versão anterior, desinstale-a primeiro. Suas configurações e grupos são mantidos.
 ru.NewerVersion=Уже установлена более новая версия Nodra. Чтобы установить старую версию, сначала удалите новую. Настройки и области сохранятся.
+en.DeleteUserData=Delete your settings and fences data too? Choose No to keep them (they are reused if you reinstall).
+zh_CN.DeleteUserData=是否同时删除你的设置和栅栏数据？选择「否」会保留它们（重新安装后仍会使用）。
+zh_TW.DeleteUserData=是否同時刪除你的設定和柵欄資料？選「否」會保留它們（重新安裝後仍會使用）。
+ja.DeleteUserData=設定とフェンスのデータも削除しますか？「いいえ」を選ぶと残ります（再インストール後も使われます）。
+ko.DeleteUserData=설정과 펜스 데이터도 삭제할까요? '아니요'를 선택하면 유지됩니다(재설치 후에도 사용됨).
+de.DeleteUserData=Einstellungen und Bereichsdaten ebenfalls löschen? Wähle „Nein", um sie zu behalten (sie werden bei einer Neuinstallation weiterverwendet).
+fr.DeleteUserData=Supprimer aussi vos réglages et vos groupes ? Choisissez « Non » pour les conserver (ils seront réutilisés après réinstallation).
+es.DeleteUserData=¿Eliminar también tus ajustes y grupos? Elige «No» para conservarlos (se reutilizarán al reinstalar).
+pt_BR.DeleteUserData=Excluir também suas configurações e grupos? Escolha «Não» para mantê-los (serão reutilizados após reinstalar).
+ru.DeleteUserData=Удалить также настройки и области? Выберите «Нет», чтобы сохранить их (они будут использованы после переустановки).
 
 [Code]
 const
@@ -395,11 +405,31 @@ begin
       RegDeleteValue(HKCU, RunKey, Name);
 end;
 
+{ Deletes the user's settings/fences (%APPDATA%\PecoFence and the pre-rename
+  %APPDATA%\OpenFence) plus the local cache (%LOCALAPPDATA%\PecoFence: logs, crash
+  dumps and the WebView2 profile). Only ever called on an interactive uninstall that
+  the user explicitly confirmed; never during a silent upgrade. }
+procedure RemoveUserData;
+begin
+  DelTree(ExpandConstant('{userappdata}\PecoFence'), True, True, True);
+  DelTree(ExpandConstant('{userappdata}\OpenFence'), True, True, True);
+  DelTree(ExpandConstant('{localappdata}\PecoFence'), True, True, True);
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usPostUninstall then begin
     RemoveOwnedStartupValue('{#CurrentRunName}');
     RemoveOwnedStartupValue('{#LegacyRunName}');
+#ifndef TestIdentity
+    { Offer to also wipe settings/fences on a manual uninstall. Silent
+      uninstalls (the in-app updater removes the previous release with
+      /VERYSILENT /SUPPRESSMSGBOXES) get the default answer "No", which keeps
+      the data for the upgrade. }
+    if SuppressibleMsgBox(CustomMessage('DeleteUserData'), mbConfirmation,
+      MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES then
+      RemoveUserData;
+#endif
   end;
   if CurUninstallStep = usDone then
     Log('Nodra uninstall cleanup completed');

@@ -818,6 +818,10 @@ impl App {
             .set(new.roll_up.hide_count_and_chevron);
         self.ctx
             .behavior
+            .edge_hide_enabled
+            .set(new.roll_up.edge_hide);
+        self.ctx
+            .behavior
             .selection_clear_on_leave
             .set(new.selection.clear_on_leave);
         // Only whole rows show with 「调整大小时按整行整列对齐」 on: redraw.

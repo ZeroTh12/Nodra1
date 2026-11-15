@@ -8,6 +8,7 @@ use crate::gpu_bindings as b;
 use crate::panel::Clip;
 use crate::theme::{Theme, font_small, font_text, lerp, with_alpha};
 use std::cell::{Ref, RefCell};
+use std::collections::HashMap;
 use std::mem::ManuallyDrop;
 use std::rc::Rc;
 use windows_canvas::{
@@ -66,6 +67,10 @@ pub struct FenceChrome {
     group_format: TextFormat,
     /// Tab match badge number: 11 / 600, centred.
     badge_format: TextFormat,
+    /// Shaped item labels, keyed by (text, layout box bits). A content frame redraws every
+    /// visible label, and DirectWrite shaping is the most expensive part of one; labels change
+    /// only on a fit / rename / DPI change, so the cache stays small and hits nearly always.
+    label_layouts: RefCell<HashMap<(String, u32, u32), TextLayout>>,
 }
 
 /// A "按时间分组" section header band in surface DIPs (already scrolled; for rows already
@@ -1508,6 +1513,7 @@ impl FenceChrome {
             title_glyph_format,
             group_format,
             badge_format,
+            label_layouts: RefCell::new(HashMap::new()),
         };
         // Labels follow the desktop's icon-title font from the start (12 px / 16 stays the
         // fallback when the system call fails).
@@ -1607,6 +1613,8 @@ impl FenceChrome {
             weight: weight.0,
             line_h,
         };
+        // Shapes are tied to the old format: none of the cached layouts may survive it.
+        self.label_layouts.borrow_mut().clear();
         Ok(true)
     }
 
@@ -1618,6 +1626,27 @@ impl FenceChrome {
     /// One label line in DIPs for the current icon-title font (16 at the default 12 px).
     pub fn label_line_h(&self) -> f32 {
         self.label_font.borrow().line_h
+    }
+
+    /// `text` shaped for a `w` x `h` DIP box in the label font, reused across frames. A
+    /// content frame draws every visible label; `draw_text` would re-shape each of them.
+    fn label_layout(&self, text: &str, w: f32, h: f32) -> Option<TextLayout> {
+        let key = (text.to_owned(), w.to_bits(), h.to_bits());
+        if let Some(layout) = self.label_layouts.borrow().get(&key) {
+            return Some(layout.clone());
+        }
+        let layout = {
+            let fmt = self.label_font.borrow();
+            TextLayout::new(text, &fmt.format, w, h).ok()?
+        };
+        let mut cache = self.label_layouts.borrow_mut();
+        // A rename storm (or a very long history of names) must not grow this without bound;
+        // dropping the cache is far cheaper than the shaping it saves.
+        if cache.len() >= 512 {
+            cache.clear();
+        }
+        cache.insert(key, layout.clone());
+        Some(layout)
     }
 
     /// Title at 12 / 14 / 16 / 18 px for the per-fence "title size" option (0 to 3).
@@ -3147,14 +3176,30 @@ impl FenceChrome {
         // transparent plate). It does not frost or darken the glass between icons.
         let halo = (theme.liquid_glass || theme.text_halo)
             .then(|| state.halo(halo_color(theme.text_primary, alpha)));
-        draw_caption(
-            session,
-            text,
-            &self.label_font.borrow().format,
-            &label_rect,
-            brush,
-            halo,
-        );
+        match self.label_layout(text, label_rect.width(), label_rect.height()) {
+            // Shaped once, drawn every frame: the shape is a pure function of text and box.
+            Some(layout) => {
+                let origin = Vector2::new(label_rect.left, label_rect.top);
+                if let Some(halo) = halo {
+                    for (dx, dy) in [(-0.75, 0.0), (0.75, 0.0), (0.0, -0.75), (0.0, 0.75)] {
+                        session.draw_text_layout(
+                            Vector2::new(origin.x + dx, origin.y + dy),
+                            &layout,
+                            halo,
+                        );
+                    }
+                }
+                session.draw_text_layout(origin, &layout, brush);
+            }
+            None => draw_caption(
+                session,
+                text,
+                &self.label_font.borrow().format,
+                &label_rect,
+                brush,
+                halo,
+            ),
+        }
 
         Ok(())
     }

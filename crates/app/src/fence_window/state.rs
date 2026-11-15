@@ -341,6 +341,9 @@ pub struct FenceViewState {
     /// The size that arrived while the re-layout was throttled; settled on TIMER_RESIZE_SETTLE
     /// or when the drag ends.
     pub(super) resize_pending: Option<(i32, i32)>,
+    /// 贴边隐藏：状态机 + tween。挂在最后一行避免打断现有字段的依赖链。
+    /// 外部调用入口：on_mouse_left_window / on_mouse_entered_window / on_timer / tick。
+    pub(super) edge_hide: EdgeHideState,
 }
 
 impl FenceViewState {

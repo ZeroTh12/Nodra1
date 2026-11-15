@@ -44,6 +44,9 @@ pub struct AppState {
 #[derive(Debug, Default)]
 pub struct SyncReport {
     pub added: usize,
+    /// Icons that disappeared from the fences during this pass: records retired at once, and
+    /// records newly marked orphaned (they are hidden from their fence right away). Records the
+    /// later orphan GC drops are not counted a second time.
     pub removed: usize,
     pub updated: usize,
 }
@@ -159,6 +162,10 @@ impl AppState {
         }
         state.ensure_layout();
         state.normalize_tabs();
+        // Layouts saved before this point can hold a column whose fences picked three different
+        // vertical anchors (one per fence, see `geometry::unify_column_anchors`); unify them all,
+        // not just the active layout, so a later monitor switch lands on fixed-up geometry too.
+        state.unify_all_layout_anchors();
         state
     }
 
@@ -239,6 +246,8 @@ impl AppState {
         self.ensure_layout();
         self.normalize_tabs();
         self.portal_cwd.clear();
+        // An imported configuration is external: its columns may carry mixed vertical anchors.
+        self.unify_all_layout_anchors();
         self.dirty = true;
     }
 
@@ -299,6 +308,8 @@ impl AppState {
         self.ensure_layout();
         self.normalize_tabs();
         self.portal_cwd.clear();
+        // Snapshots taken before columns were unified can still hold mixed vertical anchors.
+        self.unify_all_layout_anchors();
         self.dirty = true;
     }
 
@@ -344,6 +355,9 @@ impl AppState {
             n += 1;
         }
         if n > 0 {
+            // The re-normalised columns keep one vertical anchor, so the swap above does not
+            // hand the next work-area change three formulas for one column.
+            self.unify_anchor_columns();
             self.dirty = true;
         }
         n
@@ -842,16 +856,16 @@ impl AppState {
         } else {
             (None, None)
         };
+        // One local-time conversion for both fields (each one crosses the time-zone table).
+        let created_local = pecofence_platform::fileinfo::local_time_parts(entry.created);
         pecofence_core::ItemFacts {
             file_name: entry.file_name.clone(),
             is_folder: entry.is_folder,
             size_bytes: entry.size,
             shortcut_target,
             shortcut_target_ext,
-            created_minutes_local: pecofence_platform::fileinfo::local_time_parts(entry.created)
-                .map(|(m, _)| m),
-            created_weekday: pecofence_platform::fileinfo::local_time_parts(entry.created)
-                .map(|(_, d)| d),
+            created_minutes_local: created_local.map(|(m, _)| m),
+            created_weekday: created_local.map(|(_, d)| d),
             origin: match entry.origin {
                 EntryOrigin::UserDesktop => Origin::UserDesktop,
                 EntryOrigin::PublicDesktop => Origin::PublicDesktop,
@@ -1110,13 +1124,16 @@ impl AppState {
         report
     }
 
-    /// Removes a desktop item's record from the table, the catalog and the fences.
+    /// Removes a desktop item's record from the table, the catalog and every layout's fences
+    /// (each display layout keeps its own member table).
     fn remove_item_record(&mut self, id: ItemId) {
         if let Some(item) = self.config.items.remove(&id) {
             self.catalog.remove(&item.key);
         }
-        for f in &mut self.config.layouts[self.layout].fences {
-            f.items.retain(|r| r.item_id != id);
+        for layout in &mut self.config.layouts {
+            for f in &mut layout.fences {
+                f.items.retain(|r| r.item_id != id);
+            }
         }
         self.dirty = true;
     }
@@ -1181,7 +1198,9 @@ impl AppState {
     pub fn items_of(&self, fence: &Fence) -> Vec<&Item> {
         let mut items = self.fence_members(fence);
         match fence.view.sort {
-            SortMode::Manual => items.sort_by_key(|(r, it)| {
+            // Cached keys: `to_lowercase` would otherwise allocate inside the comparator,
+            // O(n log n) allocations for a fence the user re-sorts or a watcher refresh.
+            SortMode::Manual => items.sort_by_cached_key(|(r, it)| {
                 (
                     r.and_then(|r| r.manual_index).unwrap_or(u32::MAX),
                     it.display_name.to_lowercase(),
@@ -1190,18 +1209,12 @@ impl AppState {
             SortMode::Name => {
                 items.sort_by(|a, b| natural_cmp(&a.1.display_name, &b.1.display_name))
             }
-            SortMode::Type => items.sort_by(|a, b| {
-                let ka = (
-                    !a.1.is_folder,
-                    ext_of_key(&a.1.key),
-                    a.1.display_name.to_lowercase(),
-                );
-                let kb = (
-                    !b.1.is_folder,
-                    ext_of_key(&b.1.key),
-                    b.1.display_name.to_lowercase(),
-                );
-                ka.cmp(&kb)
+            SortMode::Type => items.sort_by_cached_key(|(_, it)| {
+                (
+                    !it.is_folder,
+                    ext_of_key(&it.key).to_lowercase(),
+                    it.display_name.to_lowercase(),
+                )
             }),
             SortMode::Date => items.sort_by_key(|(_, it)| std::cmp::Reverse(it.mtime)),
             SortMode::Size => items.sort_by(|a, b| {
@@ -1700,6 +1713,14 @@ impl AppState {
     /// [`Unmatched::Stay`] an item in a fence that no rule matches stays there.
     pub fn plan_rules(&self, entries: &[DesktopEntry], idle_only: bool) -> Vec<PlannedRuleMove> {
         let mut plan = Vec::new();
+        // item → its (first) fence on the active layout, built once: the per-entry scan of
+        // every fence was O(entries × items) and this runs on every sync.
+        let mut owner: HashMap<ItemId, FenceId> = HashMap::new();
+        for f in self.fences() {
+            for r in &f.items {
+                owner.entry(r.item_id).or_insert(f.id);
+            }
+        }
         for entry in entries {
             if entry.origin == EntryOrigin::Namespace {
                 continue;
@@ -1708,7 +1729,7 @@ impl AppState {
             let Some(&id) = self.catalog.get(&key) else {
                 continue;
             };
-            let current = self.fences().iter().find(|f| f.contains_item(id));
+            let current = owner.get(&id).and_then(|&fid| self.fence(fid));
             if let Some(f) = current
                 && f.items
                     .iter()
@@ -1783,6 +1804,41 @@ impl AppState {
                 f.rolled_up = rolled;
                 self.dirty = true;
             }
+        }
+        // Every stored rectangle comes through here, so a column's fences keep one vertical
+        // anchor from here on (see `geometry::unify_column_anchors`).
+        self.unify_anchor_columns();
+    }
+
+    /// One vertical anchor per column of fences on the active layout, the topmost fence's, so a
+    /// change of the work area's height moves a whole column together and the gaps the user set
+    /// survive (a lone bottom-resting fence stays its own column and still follows the bottom).
+    pub fn unify_anchor_columns(&mut self) {
+        let layout = self.layout;
+        self.unify_layout_anchors(layout);
+    }
+
+    /// [`Self::unify_anchor_columns`] on one layout: every layout the monitors may switch to.
+    pub fn unify_layout_anchors(&mut self, layout: usize) {
+        let Some(layout) = self.config.layouts.get_mut(layout) else {
+            return;
+        };
+        let mut geos: Vec<pecofence_core::NormGeometry> =
+            layout.fences.iter().map(|f| f.geometry.clone()).collect();
+        if !geometry::unify_column_anchors(&mut geos) {
+            return;
+        }
+        for (f, geo) in layout.fences.iter_mut().zip(geos) {
+            f.geometry = geo;
+        }
+        self.dirty = true;
+    }
+
+    /// [`Self::unify_layout_anchors`] on every layout, for a configuration that arrives whole
+    /// (load, import, snapshot restore) and may carry columns with mixed vertical anchors.
+    pub fn unify_all_layout_anchors(&mut self) {
+        for i in 0..self.config.layouts.len() {
+            self.unify_layout_anchors(i);
         }
     }
 
@@ -2136,6 +2192,11 @@ impl AppState {
             .rules
             .list
             .retain(|r| r.target != Target::Fence(id));
+        // The default target must not keep pointing at the deleted fence, or every item that
+        // matches no rule would silently fall back to the inbox.
+        if self.config.rules.default_target == Target::Fence(id) {
+            self.config.rules.default_target = Target::Inbox;
+        }
         // Its tabs (if it hosted any) become windows again; a deleted tab leaves its host.
         self.normalize_tabs();
         self.dirty = true;
@@ -2967,9 +3028,11 @@ mod tests {
         // Both copies listed on one sync: one item, from the user's Desktop.
         let report = state.sync_desktop(&[desktop_entry("App.lnk"), public.clone()]);
         assert_eq!(report.added, 1);
-        assert!(state
-            .item_id_for_path(Path::new("C:/Users/Me/Desktop/App.lnk"))
-            .is_some());
+        assert!(
+            state
+                .item_id_for_path(Path::new("C:/Users/Me/Desktop/App.lnk"))
+                .is_some()
+        );
         assert_eq!(state.item_id_for_path(&public.path), None);
         // A copy already catalogued by an older version is retired by the next sync.
         let mut state = test_state();

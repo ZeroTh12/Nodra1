@@ -205,6 +205,8 @@ pub(super) fn on_ncmousemove(
     let mut guard = view.borrow_mut();
     if let Some(v) = guard.as_mut() {
         v.set_mouse_inside(true);
+        // 贴边隐藏：鼠标进入栅栏非客户区 → 取消一切隐藏/显示流程，回 Idle。
+        v.edge_hide.on_mouse_entered_window(hwnd);
         // Beside a left tab column the column is the title bar (the only caption area there).
         let top = window::window_rect(hwnd).top;
         let is_title = wparam as isize == msg::HTCAPTION
@@ -284,6 +286,11 @@ pub(super) fn on_ncmouseleave(
         v.click_pending = None;
         if !inside {
             v.set_mouse_inside(false);
+            // 贴边隐藏：鼠标离开栅栏非客户区 → 启延迟隐藏流程。需要设置开启。
+            // 菜单打开期间（右键上下文菜单模态循环）不滑出，避免 owner 被移走后卡死。
+            if h.behavior.edge_hide_enabled.get() && !h.menu_open.get() {
+                v.edge_hide.on_mouse_left_window(hwnd);
+            }
         }
         // Onto a control of the title row (a tab, the chevron box): still the row. This
         // message can come after the WM_MOUSEMOVE there, which already counted the row as
@@ -523,8 +530,8 @@ pub(super) fn on_size(h: &HandlerCtx, hwnd: HWND, _wparam: usize, lparam: isize)
         // In the system size loop Windows sends one WM_SIZE per pointer move. Re-laying out the
         // cell grid for every one of them (grid, labels, icons, motion) made the edge trail the
         // pointer: the loop cannot send the next size until this handler returns. So the chrome
-        // — plate, rim, clip — follows every message, and the grid re-flows at most once per
-        // RESIZE_CONTENT_MS, then once more when the drag ends.
+        // — plate, rim, clip — follows every message, and the grid re-flows once per frame
+        // (RESIZE_CONTENT_MS), then once more when the drag ends.
         let dragging = in_size_move.get() && !v.height_animating();
         let grid_due = v
             .resize_content_at
@@ -811,11 +818,12 @@ pub(super) fn on_syscommand(
 pub(super) fn on_sizing(h: &HandlerCtx, hwnd: HWND, wparam: usize, lparam: isize) -> Option<isize> {
     let HandlerCtx { view, behavior, .. } = h;
     // 「调整大小时按整行整列对齐」 (snapping.sizeToCells, Fences' "sized to even multiples of
-    // icons"): the width takes whole icon columns and the height whole rows, except where an
-    // edge lines up with another fence (the columns then share the rest of the width, the rest
-    // of the height stays empty under the whole rows). Off, sizes are free (one column / one
-    // row at least).
+    // icons"): the width takes whole icon columns and the height whole rows where the edge comes
+    // near one (the magnet below), and is otherwise free between them, so the fence can be
+    // fine-tuned pixel by pixel. Alt held (snap_paused) drops the magnet too: a completely free
+    // resize (one column / one row at least).
     let cells = behavior.size_to_cells.get();
+    let paused = snap_paused();
     let guard = view.try_borrow().ok()?;
     let v = guard.as_ref()?;
     let scale = v.scale();
@@ -857,6 +865,11 @@ pub(super) fn on_sizing(h: &HandlerCtx, hwnd: HWND, wparam: usize, lparam: isize
     let rules = SizeRules {
         cols: cols.filter(|_| cells),
         rows: (cells && !grouped).then_some(rows),
+        magnet: if paused {
+            0
+        } else {
+            (SNAP_DIST_DIP as f32 * scale).round() as i32
+        },
         min_w,
         min_h: (rows.fixed + rows.step).round() as i32,
         rolled_h: v.rolled_up.then(|| v.rolled_h_px()),
@@ -876,7 +889,7 @@ pub(super) fn on_sizing(h: &HandlerCtx, hwnd: HWND, wparam: usize, lparam: isize
         work: work.as_ref(),
         gap: (behavior.snap_gap_dip.get() as f32 * scale).round() as i32,
         dist: (SNAP_DIST_DIP as f32 * scale).round() as i32,
-        align: !snap_paused(),
+        align: !paused,
     });
     let guides = size_among(
         rect,

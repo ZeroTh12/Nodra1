@@ -375,7 +375,11 @@ fn plain_click_is_not_a_selection() {
         selected.is_empty(),
         "a plain press must not select the item"
     );
-    assert_eq!(anchor, Some(4), "the shift range anchor still follows a click");
+    assert_eq!(
+        anchor,
+        Some(4),
+        "the shift range anchor still follows a click"
+    );
     // A plain press on an already-selected item keeps the set for a drag; the release clears it.
     let mut selected: HashSet<usize> = [1, 4].into_iter().collect();
     let press = press_item(&mut selected, &mut anchor, 4, false, false);
@@ -1022,7 +1026,8 @@ fn nearest_pull_wins_between_fences_and_centre_lines() {
     );
 }
 
-/// 48 px icons (80 x 96 DIP cells) at 100 %: 36 DIP title, 8 DIP pads, whole columns and rows.
+/// 48 px icons (80 x 96 DIP cells) at 100 %: 36 DIP title, 8 DIP pads, whole columns and rows
+/// pulled on within 10 px (`SNAP_DIST_DIP`).
 fn cell_rules() -> SizeRules {
     SizeRules {
         cols: Some(Cells {
@@ -1033,6 +1038,7 @@ fn cell_rules() -> SizeRules {
             fixed: 54.0,
             step: 96.0,
         }),
+        magnet: 10,
         min_w: 80,
         min_h: 150,
         rolled_h: None,
@@ -1057,8 +1063,9 @@ const BOTTOM: SizingEdges = SizingEdges {
 };
 
 /// Resizing with whole cells: a bottom edge near another fence's bottom lines up with it even
-/// though that fence's rows are another height (its guide shows); away from every fence, or
-/// with Alt held, the height takes whole rows.
+/// though that fence's rows are another height (its guide shows); away from every fence it
+/// keeps the pointer's own height, pulled onto a whole row only within the magnet; with Alt held
+/// (magnet 0) every height is free.
 #[test]
 fn resized_bottom_lines_up_with_fences_of_other_icon_sizes() {
     let cur = rc(100, 100, 420, 442); // 3 rows: 54 + 3 * 96
@@ -1082,18 +1089,19 @@ fn resized_bottom_lines_up_with_fences_of_other_icon_sizes() {
             to: 700,
         }]
     );
-    // Alt held: whole rows (4 rows end at 538), no guide.
+    // Alt held: free (526), no guide.
+    let alt = SizeRules { magnet: 0, ..rules };
     let mut r = rc(100, 100, 420, 526);
     let guides = size_among(
         &mut r,
         &cur,
         BOTTOM,
-        &rules,
+        &alt,
         Some(&neighbours(&[beside], None, false)),
     );
-    assert_eq!(r.bottom, 538);
+    assert_eq!(r.bottom, 526);
     assert!(guides.is_empty());
-    // Out of reach: whole rows too.
+    // Out of reach: free too (23 px from the nearest whole row).
     let mut r = rc(100, 100, 420, 515);
     size_among(
         &mut r,
@@ -1102,12 +1110,12 @@ fn resized_bottom_lines_up_with_fences_of_other_icon_sizes() {
         &rules,
         Some(&neighbours(&[beside], None, true)),
     );
-    assert_eq!(r.bottom, 538);
+    assert_eq!(r.bottom, 515);
 }
 
 /// Towards a fence below, the edge stops exactly a gap above it (a target within reach, the
 /// limit beyond), not a whole row short; the work area's edge a gap inside is a target too.
-/// Snapping off, only whole rows apply.
+/// Without a neighbour the height keeps the pointer's own position.
 #[test]
 fn resized_bottom_stops_a_gap_above_the_fence_below() {
     let cur = rc(100, 100, 420, 442);
@@ -1136,7 +1144,7 @@ fn resized_bottom_stops_a_gap_above_the_fence_below() {
     assert_eq!(r.bottom, 1032);
     let mut r = rc(100, 100, 420, 850);
     assert!(size_among(&mut r, &cur, BOTTOM, &rules, None).is_empty());
-    assert_eq!(r.bottom, 826, "7 whole rows, no neighbour stop");
+    assert_eq!(r.bottom, 850, "free without a neighbour stop");
 }
 
 /// An edge that stops a gap short of a fence beyond it marks that stop on its own outermost
@@ -1189,8 +1197,9 @@ fn resized_edge_stopped_a_gap_short_shows_the_gap_line() {
     );
 }
 
-/// A side edge lines up with a stacked fence's side edge (guide along it) and otherwise takes
-/// whole columns; the height it does not touch stays as it is, whole rows or not.
+/// A side edge lines up with a stacked fence's side edge (guide along it) and otherwise keeps
+/// the pointer's own width (whole columns only within the magnet); the height it does not touch
+/// stays as it is, whole rows or not.
 #[test]
 fn resized_side_edges_line_up_and_leave_the_height() {
     let cur = rc(100, 100, 420, 431); // not whole rows: kept
@@ -1227,7 +1236,7 @@ fn resized_side_edges_line_up_and_leave_the_height() {
         &rules,
         Some(&neighbours(&[stacked], None, true)),
     );
-    assert_eq!(r.right, 500, "5 whole columns");
+    assert_eq!(r.right, 470, "free between columns");
     let left = SizingEdges {
         left: true,
         ..SizingEdges::default()
@@ -1243,8 +1252,38 @@ fn resized_side_edges_line_up_and_leave_the_height() {
     assert_eq!(r.left, 40);
 }
 
+/// The magnet: an edge a few pixels from a whole column is pulled onto it, one farther away
+/// keeps the pointer's own width (fine-tuning between the grid steps), and Alt (magnet 0) never
+/// pulls. A width under one column still clamps to the minimum, so an icon always fits.
+#[test]
+fn resize_pulls_onto_a_whole_cell_only_within_the_magnet() {
+    let cur = rc(100, 100, 420, 442);
+    let rules = cell_rules();
+    let right = SizingEdges {
+        right: true,
+        ..SizingEdges::default()
+    };
+    // 4 px short of five whole columns (500): pulled on.
+    let mut r = rc(100, 100, 496, 442);
+    size_among(&mut r, &cur, right, &rules, None);
+    assert_eq!(r.right, 500);
+    // 20 px short: free.
+    let mut r = rc(100, 100, 480, 442);
+    size_among(&mut r, &cur, right, &rules, None);
+    assert_eq!(r.right, 480);
+    // Alt: free right up to the cell.
+    let alt = SizeRules { magnet: 0, ..rules };
+    let mut r = rc(100, 100, 496, 442);
+    size_among(&mut r, &cur, right, &alt, None);
+    assert_eq!(r.right, 496);
+    // Under one column: the minimum (one whole column) still applies.
+    let mut r = rc(100, 100, 130, 442);
+    size_among(&mut r, &cur, right, &rules, None);
+    assert_eq!(r.right, 180);
+}
+
 /// The top edge lines up a gap below a fence above; a target leaving less than one row is
-/// ignored; a rolled fence stays one title bar tall whatever edge moves.
+/// ignored and the minimum applies; a rolled fence stays one title bar tall whatever edge moves.
 #[test]
 fn resized_top_edge_minimum_and_rolled_fences() {
     let cur = rc(100, 100, 420, 442);
@@ -1284,7 +1323,7 @@ fn resized_top_edge_minimum_and_rolled_fences() {
     };
     let mut r = rc(100, 100, 470, 500);
     size_among(&mut r, &rc(100, 100, 420, 136), corner, &rolled, None);
-    assert_eq!((r.right, r.bottom), (500, 136));
+    assert_eq!((r.right, r.bottom), (470, 136));
     assert_eq!(SizingEdges::from_wmsz(8), corner);
     assert_eq!(
         SizingEdges::from_wmsz(4),

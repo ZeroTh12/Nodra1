@@ -42,6 +42,7 @@ pub(super) fn on_mouseleave(
     // cursor is still inside our RECT (see WM_NCMOUSELEAVE).
     let pt = window::cursor_pos();
     let inside = desktop::root_ancestor(desktop::window_from_point(pt.x, pt.y)) == hwnd;
+    tracing::info!(inside, ?pt, "edge_hide: WM_MOUSELEAVE called");
     if !inside {
         // A peek armed over the chevron / a tab must not open once the
         // pointer has left the fence.
@@ -52,6 +53,15 @@ pub(super) fn on_mouseleave(
     if let Some(v) = guard.as_mut() {
         if !inside {
             v.set_mouse_inside(false);
+            // 贴边隐藏：鼠标离开贴边栅栏 → 选边 + 启延迟定时器。需要设置开启。
+            let enabled = h.behavior.edge_hide_enabled.get();
+            let menu_open = h.menu_open.get();
+            tracing::info!(enabled, menu_open, "edge_hide: WM_MOUSELEAVE fired");
+            // 菜单打开期间（右键上下文菜单的模态 TrackPopupMenuEx 循环）绝不滑出：
+            // 否则菜单 owner 窗口被移走后点不到"重命名"，右键即卡死崩溃。
+            if enabled && !menu_open {
+                v.edge_hide.on_mouse_left_window(hwnd);
+            }
             // `selection.clearOnLeave`: once the pointer leaves the fence, a selection made by
             // a stray click is cleared, so no highlight stays behind. Skipped while a gesture
             // owns the pointer (a capture-held drag leaves without WM_MOUSELEAVE anyway).
@@ -513,13 +523,38 @@ pub(super) fn on_capturechanged(
     _wparam: usize,
     _lparam: isize,
 ) -> Option<isize> {
-    let HandlerCtx { view, queue, .. } = h;
+    let HandlerCtx {
+        view,
+        queue,
+        behavior,
+        ..
+    } = h;
     let fence_id = h.fence_id;
     let mut guard = view.borrow_mut();
     if let Some(v) = guard.as_mut() {
         v.drag = None;
         v.rbutton_press = None;
         v.clear_pressed();
+        // 贴边隐藏补丁：拖拽期间 SetCapture 会让 TrackMouseEvent 失效
+        // （MSDN: "TrackMouseEvent does not work while the mouse is captured"）。
+        // 所以拖拽释放后如果鼠标已经在栅栏外面，WM_MOUSELEAVE 不会再发了 ——
+        // 我们在这里手动触发一次，把贴边隐藏的起点补上。
+        if behavior.edge_hide_enabled.get() && !h.menu_open.get() {
+            let pt = window::cursor_pos();
+            let rect = window::window_rect(hwnd);
+            let outside =
+                pt.x < rect.left || pt.x > rect.right || pt.y < rect.top || pt.y > rect.bottom;
+            tracing::info!(
+                outside,
+                ?pt,
+                ?rect,
+                "edge_hide: WM_CAPTURECHANGED post-drag check"
+            );
+            if outside {
+                v.set_mouse_inside(false);
+                v.edge_hide.on_mouse_left_window(hwnd);
+            }
+        }
         if v.detach_pending || v.remote_drag.is_some() {
             tracing::info!(
                 ?hwnd,

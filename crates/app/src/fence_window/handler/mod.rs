@@ -286,6 +286,13 @@ impl FenceWindow {
                     msg::WM_TIMER if wparam == TIMER_RESIZE_SETTLE => {
                         timers::on_timer_resize_settle(h, hwnd, wparam, lparam)
                     }
+                    msg::WM_TIMER
+                        if wparam == TIMER_EDGE_HIDE_LINGER
+                            || wparam == TIMER_EDGE_HIDE_PROBE
+                            || wparam == TIMER_EDGE_HIDE_POLL =>
+                    {
+                        timers::on_timer_edge_hide(h, hwnd, wparam, lparam)
+                    }
                     msg::WM_ENTERMENULOOP => timers::on_entermenuloop(h, hwnd, wparam, lparam),
                     msg::WM_EXITMENULOOP => timers::on_exitmenuloop(h, hwnd, wparam, lparam),
                     msg::WM_TIMER if wparam == TIMER_PEEK_CLOSE => {

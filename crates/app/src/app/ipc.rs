@@ -656,10 +656,15 @@ impl App {
             Method::FencesRoll { fence, rolled } => {
                 let id = self.resolve_fence(fence)?;
                 let host = self.state.host_of(id);
-                let current = self.fence_or_err(host)?.rolled_up;
-                let changed = current != *rolled;
+                // The fence can have no window (a hidden inbox): set_roll is then a no-op, so
+                // `changed` must come from the state after the call, not from the request.
+                let before = self.fence_or_err(host)?.rolled_up;
+                self.set_roll(host, *rolled);
+                let changed = self
+                    .state
+                    .fence(host)
+                    .is_some_and(|f| f.rolled_up != before);
                 if changed {
-                    self.set_roll(host, *rolled);
                     self.push_settings_state();
                 }
                 Ok(mutation(changed, None, self.fence_extra(id)?))
@@ -1829,6 +1834,8 @@ impl App {
                 fm.geometry = geo;
             }
         }
+        // Tabs travelling to another monitor must land in one column anchor too.
+        self.state.unify_anchor_columns();
         self.state.mark_dirty();
         self.end_peek_now();
         self.relayout_from_state();

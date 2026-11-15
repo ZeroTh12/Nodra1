@@ -575,6 +575,17 @@ impl<K: Hash + Eq + Copy> Fades<K> {
         self.map.get(key).map_or(0.0, |t| t.value_at(now))
     }
 
+    /// Moves the fade for `old` to `new`, keeping its progress and target, e.g. when an item
+    /// is re-keyed after a rename.
+    pub fn rekey(&mut self, old: K, new: K) {
+        if old == new {
+            return;
+        }
+        if let Some(t) = self.map.remove(&old) {
+            self.map.insert(new, t);
+        }
+    }
+
     /// True while any fade is still moving (the caller keeps requesting frames).
     pub fn busy(&self, now: Instant) -> bool {
         self.map.values().any(|t| !t.is_done(now))

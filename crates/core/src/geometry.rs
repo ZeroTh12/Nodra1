@@ -173,6 +173,100 @@ pub fn denormalize(geo: &NormGeometry, work: &WorkArea) -> PxRect {
     }
 }
 
+/// The vertical half of [`pick_anchor`]'s choice: 0 = centred, 1 = against the top, 2 = against
+/// the bottom.
+fn v_side(anchor: Anchor) -> u8 {
+    use Anchor::*;
+    match anchor {
+        LeftVCenter | RightVCenter | Center => 0,
+        LeftTop | RightTop | HCenterTop => 1,
+        LeftBottom | RightBottom | HCenterBottom => 2,
+    }
+}
+
+/// The same anchor with another vertical half; the horizontal half is kept.
+fn with_v_side(anchor: Anchor, v: u8) -> Anchor {
+    use Anchor::*;
+    match (anchor, v) {
+        (LeftTop | LeftBottom | LeftVCenter, 0) => LeftVCenter,
+        (RightTop | RightBottom | RightVCenter, 0) => RightVCenter,
+        (HCenterTop | HCenterBottom | Center, 0) => Center,
+        (LeftBottom | LeftVCenter, 1) => LeftTop,
+        (RightBottom | RightVCenter, 1) => RightTop,
+        (HCenterBottom | Center, 1) => HCenterTop,
+        (LeftTop | LeftVCenter, 2) => LeftBottom,
+        (RightTop | RightVCenter, 2) => RightBottom,
+        (HCenterTop | Center, 2) => HCenterBottom,
+        (anchor, _) => anchor,
+    }
+}
+
+/// Union-find representative of `i` in `group` (path compressed).
+fn find(group: &mut [usize], i: usize) -> usize {
+    if group[i] != i {
+        let parent = group[i];
+        let root = find(group, parent);
+        group[i] = root;
+    }
+    group[i]
+}
+
+/// Gives one column of fences — same monitor, horizontally overlapping — a single vertical
+/// anchor, the topmost fence's, and reports whether anything changed.
+///
+/// [`pick_anchor`] looks only at how near one fence is to each edge, so a column stacked from
+/// the top down comes out as against-top, centred and against-bottom from one fence to the
+/// next. [`denormalize`] then turns those three into three different `y` formulas: against-top
+/// keeps the absolute `y`, against-bottom keeps the distance to the bottom, and centred scales
+/// with the work area's height. Once the work area changes height (the taskbar moves, a monitor
+/// is added), each fence of the column goes its own way and the gaps the user set are torn
+/// apart — while a lone fence resting on the bottom keeps its own column, so it still follows
+/// the bottom edge. The horizontal half is left alone.
+pub fn unify_column_anchors(geos: &mut [NormGeometry]) -> bool {
+    let n = geos.len();
+    if n < 2 {
+        return false;
+    }
+    let mut group: Vec<usize> = (0..n).collect();
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let same_column = geos[i].monitor == geos[j].monitor
+                && geos[i].x < geos[j].x + geos[j].w
+                && geos[j].x < geos[i].x + geos[i].w;
+            if !same_column {
+                continue;
+            }
+            let a = find(&mut group, i);
+            let b = find(&mut group, j);
+            if a != b {
+                group[b] = a;
+            }
+        }
+    }
+    let ids: Vec<usize> = (0..n).map(|i| find(&mut group, i)).collect();
+    // The vertical half of each column's topmost fence (lowest stored `y`).
+    let mut top: Vec<Option<(f32, u8)>> = vec![None; n];
+    for (i, &g) in ids.iter().enumerate() {
+        let y = geos[i].y;
+        let v = v_side(geos[i].anchor);
+        let slot = &mut top[g];
+        match *slot {
+            Some((top_y, _)) if y >= top_y => {}
+            _ => *slot = Some((y, v)),
+        }
+    }
+    let mut changed = false;
+    for (i, &g) in ids.iter().enumerate() {
+        let Some((_, v)) = top[g] else { continue };
+        let anchor = with_v_side(geos[i].anchor, v);
+        if anchor != geos[i].anchor {
+            geos[i].anchor = anchor;
+            changed = true;
+        }
+    }
+    changed
+}
+
 /// Chooses the work area to place `geo` on: exact device path, else the primary/first.
 pub fn resolve_work_area<'a>(geo: &NormGeometry, areas: &'a [WorkArea]) -> Option<&'a WorkArea> {
     areas
@@ -266,5 +360,98 @@ mod tests {
         assert!(r.left >= 0 && r.right <= 800 && r.top >= 0 && r.bottom <= 600);
         assert_eq!(r.width(), MIN_W_DIP as i32);
         assert_eq!(r.height(), MIN_H_DIP as i32);
+    }
+
+    /// The column of four fences a real desktop had stacked against a 1018-dip work area.
+    /// `pick_anchor` reads each fence on its own and hands the column three vertical anchors
+    /// (top two against the top, the third centred, the last against the bottom); when the
+    /// work area grows — the taskbar leaves the bottom — `denormalize` then moves those three
+    /// with three different formulas and the 8-dip gaps the user set fall apart to 36 / 28.
+    /// [`unify_column_anchors`] gives the column one anchor so the gaps survive.
+    #[test]
+    fn a_stacked_column_keeps_its_gaps_when_the_work_area_grows() {
+        // Saved against 2560x1528 physical = 1706.67 x 1018.67 dip at 150%.
+        let saved = work(144, 2560, 1528);
+        let px = |top: i32, h: i32| PxRect {
+            left: 2176,
+            top,
+            right: 2560,
+            bottom: top + h,
+        };
+        let mut geos: Vec<NormGeometry> = [
+            px(12, 368),   // y   8.00 h 245.33
+            px(392, 320),  // y 261.33 h 213.33
+            px(724, 320),  // y 482.67 h 213.33
+            px(1056, 200), // y 704.00 h 133.33
+        ]
+        .iter()
+        .map(|r| normalize(*r, &saved))
+        .collect();
+        // The bug in one line: against-top, against-top, centred, against-bottom in one column.
+        let sides: Vec<u8> = geos.iter().map(|g| v_side(g.anchor)).collect();
+        assert_eq!(sides, vec![1, 1, 0, 2]);
+
+        // The work area grows: the column drifts (gaps in physical px: 12, then torn).
+        let grown = work(144, 2560, 1600);
+        let gaps = |geos: &[NormGeometry]| -> Vec<i32> {
+            geos.windows(2)
+                .map(|w| {
+                    let a = denormalize(&w[0], &grown);
+                    let b = denormalize(&w[1], &grown);
+                    b.top - a.bottom
+                })
+                .collect()
+        };
+        let torn = gaps(&geos);
+        assert_eq!(
+            torn,
+            vec![12, 54, 42],
+            "work area growth tears the column apart"
+        );
+
+        assert!(unify_column_anchors(&mut geos));
+        assert!(geos.iter().all(|g| g.anchor == geos[0].anchor));
+        // 8 dip at 150%: the whole column travels together, gaps intact.
+        assert_eq!(gaps(&geos), vec![12, 12, 12]);
+        // Second pass changes nothing (idempotent).
+        assert!(!unify_column_anchors(&mut geos));
+    }
+
+    /// A fence resting alone on the bottom edge keeps its own column, so it still follows the
+    /// bottom when the work area changes height.
+    #[test]
+    fn a_lone_bottom_fence_keeps_its_anchor() {
+        let wa = work(96, 1920, 1040);
+        let r = PxRect {
+            left: 1600,
+            top: 1040 - 16 - 120,
+            right: 1904,
+            bottom: 1040 - 16,
+        };
+        let mut geos = vec![normalize(r, &wa)];
+        assert_eq!(geos[0].anchor, Anchor::RightBottom);
+        assert!(!unify_column_anchors(&mut geos));
+        assert_eq!(geos[0].anchor, Anchor::RightBottom);
+    }
+
+    /// Two columns do not share an anchor: only fences that overlap horizontally do.
+    #[test]
+    fn separate_columns_keep_their_own_anchors() {
+        let wa = work(96, 1920, 1040);
+        let top = |x: i32, y: i32, h: i32| PxRect {
+            left: x,
+            top: y,
+            right: x + 300,
+            bottom: y + h,
+        };
+        let mut geos = vec![
+            normalize(top(20, 8, 200), &wa),     // column A, top
+            normalize(top(20, 700, 120), &wa),   // column A, bottom
+            normalize(top(1600, 700, 120), &wa), // column B, bottom
+        ];
+        assert!(unify_column_anchors(&mut geos));
+        // A's two share the topmost's anchor; B stands alone on the bottom.
+        assert_eq!(geos[0].anchor, geos[1].anchor);
+        assert_eq!(geos[2].anchor, Anchor::RightBottom);
     }
 }

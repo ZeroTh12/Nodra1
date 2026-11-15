@@ -220,12 +220,7 @@ impl App {
             .unwrap_or((None, 1.0));
         w.set_appearance(bd, op);
         w.set_title_on_hover(f.appearance.as_ref().and_then(|a| a.title_on_hover));
-        w.set_shape(
-            f.appearance
-                .as_ref()
-                .map(|a| a.shape)
-                .unwrap_or_default(),
-        );
+        w.set_shape(f.appearance.as_ref().map(|a| a.shape).unwrap_or_default());
         w.set_style(fence_style_for(&f));
         if let Some(a) = self.anchor.borrow_mut().as_mut() {
             a.set_quick_hide_excluded(w.hwnd(), f.exclude_from_quick_hide);
@@ -282,6 +277,16 @@ impl App {
     }
 
     pub(super) fn refresh_all(&mut self) {
+        self.refresh_all_as(false);
+    }
+
+    /// `force`: skip the "this window already shows exactly that" test so every fence repaints,
+    /// and drop its cached icon bitmaps. The shell's own 刷新 (Explorer's right-click 刷新 or F5
+    /// on the desktop) reaches here as a notice even when the re-read listing matched what the
+    /// fences already show — the user asked for the view to catch up, so it has to redraw too.
+    /// Only the bitmaps go: they reload lazily out of the icon cache, so nothing re-extracts
+    /// and the repaint costs no stall.
+    pub(super) fn refresh_all_as(&mut self, force: bool) {
         let ids: Vec<FenceId> = self.fences.keys().copied().collect();
         for id in ids {
             let active = self.state.active_tab_of(id);
@@ -291,11 +296,14 @@ impl App {
                 // A fence the change did not touch keeps its view: no redraw, and its hover,
                 // press and type-ahead stay (asked before `set_tabs`, which may switch tabs).
                 let items = self.item_views(f);
-                let unchanged = w.active_fence() == active && w.shows_items(&items);
+                let unchanged = !force && w.active_fence() == active && w.shows_items(&items);
                 w.set_tabs(self.tab_views(id), active);
                 w.set_group_by_date(f.view.group_by_date);
                 if !unchanged {
                     w.set_items(items);
+                }
+                if force {
+                    w.drop_icons();
                 }
             }
             self.apply_auto_height(id);

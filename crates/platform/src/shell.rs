@@ -2,9 +2,30 @@
 
 use crate::bindings::*;
 use crate::wide::to_wide;
+use std::cell::RefCell;
 use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use windows_core::{GUID, Interface, PCWSTR, PWSTR, Result};
+
+thread_local! {
+    /// One `IShellLink` shared by every `.lnk` read on this thread. A rule pass loads each
+    /// shortcut on the desktop; creating a COM object per file is pure overhead, and `Load`
+    /// re-reads the file, so a retargeted shortcut is picked up on the next call.
+    static SHELL_LINK: RefCell<Option<IShellLinkW>> = const { RefCell::new(None) };
+}
+
+fn shell_link() -> Option<IShellLinkW> {
+    SHELL_LINK.with(|cell| {
+        if let Some(link) = cell.borrow().as_ref() {
+            return Some(link.clone());
+        }
+        // SAFETY: standard in-proc COM instantiation.
+        let link: IShellLinkW =
+            unsafe { CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER) }.ok()?;
+        *cell.borrow_mut() = Some(link.clone());
+        Some(link)
+    })
+}
 
 // FOLDERID_Desktop / FOLDERID_PublicDesktop (KnownFolders.h).
 const FOLDERID_DESKTOP: GUID = GUID::from_u128(0xB4BFCC3A_DB2C_424C_B029_7FE99A87C641);
@@ -1046,7 +1067,10 @@ pub fn rename_with_prompt(path: &Path, new_name: &str, owner: Option<HWND>) -> R
             .ok()?;
         // Declining the prompt fails the operation too: report that as a cancel, not an error.
         let performed = op.PerformOperations();
-        if op.GetAnyOperationsAborted().is_ok_and(|b| b.as_bool()) {
+        if op.GetAnyOperationsAborted().is_ok_and(|b| b.as_bool())
+            || performed == COPYENGINE_E_USER_CANCELLED
+            || performed == E_CANCELLED
+        {
             return Ok(false);
         }
         performed.ok()?;
@@ -1134,7 +1158,7 @@ pub fn shortcut_info(path: &Path) -> Option<(String, Option<String>)> {
     let w = path_wide(path);
     // SAFETY: standard IShellLink usage; buffers are sized and NUL-terminated.
     unsafe {
-        let link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).ok()?;
+        let link: IShellLinkW = shell_link()?;
         let persist: IPersistFile = link.cast().ok()?;
         persist
             .Load(PCWSTR(w.as_ptr()), STGM_READ as u32)

@@ -51,6 +51,7 @@ use windows_core::Result;
 mod api;
 mod consts;
 mod dnd;
+mod edge_hide;
 mod frame;
 mod group;
 mod handler;
@@ -73,6 +74,7 @@ pub use dnd::filter_folder_paths;
 
 use self::consts::*;
 use self::dnd::*;
+use self::edge_hide::{EdgeHide, EdgeHideState, EdgeSide};
 use self::group::*;
 use self::hit::*;
 use self::items::*;
@@ -140,6 +142,8 @@ pub struct Behavior {
     /// Clear the fence's icon selection when the pointer leaves its window
     /// (`selection.clearOnLeave`).
     pub selection_clear_on_leave: std::cell::Cell<bool>,
+    /// 贴边隐藏：鼠标离开贴边栅栏延迟后滑出屏幕，靠近边缘感应区滑回。
+    pub edge_hide_enabled: std::cell::Cell<bool>,
     /// `SPI_GETWHEELSCROLLLINES`: rows per wheel notch; `u32::MAX` (`WHEEL_PAGESCROLL`) = one
     /// viewport, 0 = the wheel does not scroll. Refreshed on WM_SETTINGCHANGE.
     pub wheel_lines: std::cell::Cell<u32>,

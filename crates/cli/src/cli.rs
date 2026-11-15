@@ -182,7 +182,7 @@ pub enum FenceCmd {
         #[arg(long, value_name = "FENCE", group = "place")]
         left_of: Option<String>,
         /// Size in physical px with --below/--above/--right-of/--left-of (default: that fence's)
-        #[arg(long, value_name = "W,H", value_parser = parse_size)]
+        #[arg(long, value_name = "W,H", value_parser = parse_size, conflicts_with_all = ["rect", "monitor"])]
         size: Option<(i32, i32)>,
     },
     /// Delete a fence; its items return to the desktop (inbox) fence, rules targeting it are removed

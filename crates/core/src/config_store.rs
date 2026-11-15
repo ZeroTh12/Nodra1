@@ -95,8 +95,12 @@ impl ConfigStore {
     /// Reads and validates any config file (import / backup restore), with the reason on error.
     pub fn parse_file(path: &Path) -> Result<Config, String> {
         let text = fs::read_to_string(path).map_err(|e| e.to_string())?;
+        Self::parse_text(&text)
+    }
+
+    fn parse_text(text: &str) -> Result<Config, String> {
         // Windows PowerShell 5.1 `Set-Content -Encoding utf8` and Notepad can add a BOM.
-        let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+        let text = text.strip_prefix('\u{feff}').unwrap_or(text);
         let cfg: Config = serde_json::from_str(text).map_err(|e| e.to_string())?;
         validate(&cfg)?;
         Ok(migrate(cfg))
@@ -127,23 +131,33 @@ impl ConfigStore {
     /// [`Self::load`], plus where an unreadable primary was moved. A `config.json` that exists
     /// but does not parse or validate (written by a newer version, or hand-edited) is renamed
     /// to `config.unreadable-<date>-<secs>.json` first: the `.bak` rotation in [`Self::save`]
-    /// would otherwise turn it into `config.bak` and delete it on the next save.
+    /// would otherwise turn it into `config.bak` and delete it on the next save. A read that
+    /// merely fails (locked, permissions) leaves the file where it is.
     pub fn load_reporting(&self) -> (LoadOutcome, Option<PathBuf>) {
         let primary = self.primary_path();
         // Antivirus, backup and sync tools can hold the file open without read sharing for a
-        // moment (ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION); wait for them before the
-        // file counts as unreadable.
+        // moment (ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION); retry the read itself, not a
+        // probe, so a transient lock is never mistaken for a corrupt config.
+        let mut text = None;
         for attempt in 1..=5 {
-            match fs::File::open(&primary) {
+            match fs::read_to_string(&primary) {
+                Ok(t) => {
+                    text = Some(t);
+                    break;
+                }
                 Err(e) if attempt < 5 && matches!(e.raw_os_error(), Some(32 | 33)) => {
                     std::thread::sleep(std::time::Duration::from_millis(300))
                 }
-                _ => break,
+                Err(_) => break,
             }
         }
-        let quarantined = match Self::parse_file(&primary) {
+        // An I/O failure is not proof the content is bad: leave the file in place and load a
+        // fallback for this run instead of quarantining (and later overwriting) it.
+        let Some(text) = text else {
+            return (self.load_fallbacks(), None);
+        };
+        let quarantined = match Self::parse_text(&text) {
             Ok(c) => return (LoadOutcome::Primary(c), None),
-            Err(_) if !primary.exists() => None,
             Err(_) => self.quarantine(&primary),
         };
         (self.load_fallbacks(), quarantined)
@@ -222,8 +236,8 @@ impl ConfigStore {
         let primary = self.primary_path();
         let mut rotated = false;
         if primary.exists() {
-            // Best effort: keep the previous good file as .bak.
-            let _ = fs::remove_file(self.bak_path());
+            // Best effort: keep the previous good file as .bak. The replace-existing rename
+            // keeps the old .bak when this fails, so a failed rotation destroys no backup.
             rotated = fs::rename(&primary, self.bak_path()).is_ok();
         }
         match fs::rename(self.tmp_path(), &primary) {
@@ -250,7 +264,9 @@ impl ConfigStore {
                 return Err(at("replace config.json")(e));
             }
         }
-        self.daily_backup(&json).map_err(at("daily backup"))?;
+        // The new config is already on disk: a failed daily backup must not report the save as
+        // failed and make the caller retry (and re-write) a file that was saved correctly.
+        let _ = self.daily_backup(&json);
         Ok(())
     }
 

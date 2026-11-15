@@ -43,8 +43,7 @@ unsafe extern "system" {
 
 pub const NOT_RUNNING_HINT: &str =
     "Start Nodra, or pass --instance / set PECOFENCE_INSTANCE to match the running instance";
-pub const TIMEOUT_HINT: &str =
-    "Close any open Nodra menu or dialog and retry, or raise --timeout";
+pub const TIMEOUT_HINT: &str = "Close any open Nodra menu or dialog and retry, or raise --timeout";
 
 /// Sends one request and waits for the reply. `Ok` carries the server's envelope, which may
 /// itself be `ok: false`; transport failures are mapped to `not_running` / `timeout` /
@@ -224,11 +223,10 @@ fn open(name: &str) -> Result<std::fs::File, IpcError> {
                 let _ = unsafe { WaitNamedPipeW(wide.as_ptr(), BUSY_WAIT_MS) };
             }
             Some(ERROR_PIPE_BUSY) => {
-                return Err(IpcError::new(
-                    ErrorCode::Busy,
-                    "every Nodra pipe instance is busy",
-                )
-                .hint("Retry in a moment; run fewer CLI calls in parallel"));
+                return Err(
+                    IpcError::new(ErrorCode::Busy, "every Nodra pipe instance is busy")
+                        .hint("Retry in a moment; run fewer CLI calls in parallel"),
+                );
             }
             _ => {
                 return Err(IpcError::internal(format!("cannot open {name}: {err}")));

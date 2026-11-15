@@ -48,7 +48,10 @@ fn restart_app() -> bool {
     if sysparams::shutting_down() {
         return false;
     }
-    let Some(dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(Path::to_path_buf)) else {
+    let Some(dir) = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(Path::to_path_buf))
+    else {
         return false;
     };
     let app = dir.join("pecofence.exe");

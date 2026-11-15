@@ -1,19 +1,30 @@
 https://github.com/user-attachments/assets/c827f059-cfd7-4f6a-bed3-8b00411a7220
 
 > [!NOTE]
-> **Nodra** · 基于 [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) 的社区定制版
+> **Nodra** · 基于 [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) v0.2.3 的社区定制版
 >
-> 基于 [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) v0.2.3(含 main 分支未发布改动),在本仓库基础上做了以下增强:
+> 在上游 `main` 分支基础上,本仓库额外做了以下增强:
 >
-> 1. **`selection.clearOnLeave`** — 鼠标离开围栏时自动清除图标选中,误点不再留下高亮;
-> 2. **卡死自愈** — watchdog 每 20 秒探测主程序,连续两次无响应即结束并自动重启;
-> 3. **10 套全新主题** — 取自 GitHub 最受欢迎的配色:摩卡拿铁 (Catppuccin)、东京之夜 (Tokyo Night)、北欧极光 (Nord)、德古拉 (Dracula)、玫瑰松林 (Rosé Pine)、常青之森 (Everforest)、月之暗面 (One Dark)、熔金暖石 (Gruvbox)、神奈冲浪 (Kanagawa)、午夜代码 (GitHub Dark);
-> 4. **更名 Nodra** — 全新图标;关于页与反馈表单显示联系邮箱 yz13133916714@163.com;Star / 反馈 / 更新检查指向本仓库。
+> - 🧹 **`selection.clearOnLeave`** — 鼠标离开围栏自动清除图标选中,误点不再留下高亮
+> - 🩹 **卡死自愈** — watchdog 每 20 秒探测主程序,连续两次无响应即结束并自动重启
+> - 🎨 **10 套全新主题** — Catppuccin · Tokyo Night · Nord · Dracula · Rosé Pine · Everforest · One Dark · Gruvbox · Kanagawa · GitHub Dark
+> - ✨ **更名 Nodra** — 全新图标;关于页与反馈表单显示联系邮箱 `yz13133916714@163.com`;Star / 反馈 / 更新检查指向本仓库
 >
-> 安装包与便携版在 [Releases](../../releases) 下载。上游的所有功能、CLI、文档保持不变。
-> 遵循 Apache-2.0 许可证分发,上游版权与许可证文件完整保留。
->
-> *A community build of [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) v0.2.3, renamed **Nodra**: a hover-clears-selection setting, a self-healing watchdog, ten new themes from GitHub's favourite palettes (Catppuccin, Tokyo Night, Nord, Dracula, Rosé Pine, Everforest, One Dark, Gruvbox, Kanagawa, GitHub Dark), a new icon, and a contact address in Settings › 关于. Installers are on the [Releases](../../releases) page. Apache-2.0, all rights and license files of the upstream project preserved.*
+> 安装包与便携版见 [Releases](../../releases)。上游全部功能、CLI、文档保持不变,遵循 Apache-2.0 分发,上游版权与许可证文件完整保留。
+
+<details>
+<summary><strong>English summary</strong></summary>
+
+A community build of [DayuanJiang/PecoFence](https://github.com/DayuanJiang/PecoFence) v0.2.3, renamed **Nodra**. On top of upstream `main`:
+
+- 🧹 **`selection.clearOnLeave`** — selection clears when the pointer leaves a fence, so a misclick never leaves a stuck highlight
+- 🩹 **Self-healing watchdog** — probes the main process every 20 s and restarts it after two consecutive timeouts
+- 🎨 **10 new themes** — Catppuccin · Tokyo Night · Nord · Dracula · Rosé Pine · Everforest · One Dark · Gruvbox · Kanagawa · GitHub Dark
+- ✨ **Rebranded Nodra** — new icon, contact address in Settings › About, and Star / feedback / update links pointing at this repository
+
+All upstream features, CLI and docs are unchanged. Apache-2.0, all upstream rights and license files preserved. Installers on the [Releases](../../releases) page.
+
+</details>
 
 <p align="center">
   <strong>A free, open-source Stardock Fences alternative for Windows 11.</strong><br>

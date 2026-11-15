@@ -855,7 +855,13 @@ pub fn run_message_loop() -> i32 {
     // SAFETY: standard message pump.
     unsafe {
         let mut msg = MSG::default();
-        while GetMessageW(&mut msg, None, 0, 0).as_bool() {
+        loop {
+            // -1 is an error, not a message: BOOL treats it as true, so test the raw value.
+            match GetMessageW(&mut msg, None, 0, 0).0 {
+                -1 => return -1,
+                0 => break,
+                _ => {}
+            }
             let _ = TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }

@@ -157,7 +157,9 @@ pub fn check_config(path: &Path) -> Result<(Value, bool), IpcError> {
             ErrorCode::ValidationFailed,
             format!("{} would be rejected by Nodra: {e}", path.display()),
         )
-        .details(json!({ "expected": "a config.json as written by Nodra (describe --schema Config)" }))
+        .details(
+            json!({ "expected": "a config.json as written by Nodra (describe --schema Config)" }),
+        )
     })?;
     let problems = config_store::lint(&cfg);
     let errors = problems

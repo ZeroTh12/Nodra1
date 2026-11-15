@@ -288,6 +288,7 @@ impl FenceWindow {
             behavior: ctx.behavior.clone(),
             resize_content_at: None,
             resize_pending: None,
+            edge_hide: EdgeHideState::default(),
         };
         if rolled_up {
             let th = state.title_h_px();
@@ -713,11 +714,10 @@ impl FenceWindow {
                 if let Some(motion) = v.item_motion.remove(&old) {
                     v.item_motion.insert(new, motion);
                 }
-                let now = Instant::now();
-                v.item_hover.prune(now, |id| *id != old);
-                v.item_sel.prune(now, |id| *id != old);
-                v.drop_fades.prune(now, |id| *id != old);
-                v.search_dim.prune(now, |id| *id != old);
+                v.item_hover.rekey(old, new);
+                v.item_sel.rekey(old, new);
+                v.drop_fades.rekey(old, new);
+                v.search_dim.rekey(old, new);
                 if v.renaming == Some(old) {
                     v.renaming = Some(new);
                 }

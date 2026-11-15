@@ -288,10 +288,7 @@ impl SettingsHost {
     }
 
     pub fn update_language(&self) {
-        window::set_title(
-            self.window.hwnd(),
-            pecofence_core::i18n::text("Nodra 设置"),
-        );
+        window::set_title(self.window.hwnd(), pecofence_core::i18n::text("Nodra 设置"));
     }
 
     /// Sets the window's caption icons (`WM_SETICON` small + big) from premultiplied BGRA.

@@ -207,6 +207,25 @@ pub fn monitor_from_point(x: i32, y: i32) -> HMONITOR {
     unsafe { MonitorFromPoint(POINT { x, y }, MONITOR_DEFAULTTONEAREST as u32) }
 }
 
+/// 返回鼠标当前所在显示器的 MonitorInfo（含 `rcWork`，即任务栏外工作区）。
+/// ✅ 坑 1：绝不用 `GetSystemMetrics`（那是主屏），始终 `MonitorFromPoint` +
+/// `GetMonitorInfoW`，多显示器间鼠标漂移时自动跟随到正确的物理显示器；
+/// 工作区 `work_area` 已经扣掉任务栏，贴边感应区算边界时直接用它，不会撞进任务栏。
+pub fn work_area_under_cursor() -> Option<MonitorInfo> {
+    let mut pt = POINT::default();
+    // SAFETY: plain FFI, out-pointer references a local on this thread's stack.
+    unsafe {
+        if !GetCursorPos(&mut pt as *mut POINT).as_bool() {
+            return None;
+        }
+    }
+    let hm = monitor_from_point(pt.x, pt.y);
+    if hm.0.is_null() {
+        return None;
+    }
+    query(hm)
+}
+
 pub fn dpi_for_window(hwnd: HWND) -> u32 {
     // SAFETY: plain FFI call.
     unsafe { GetDpiForWindow(hwnd) }

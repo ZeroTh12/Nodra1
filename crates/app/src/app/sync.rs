@@ -239,6 +239,15 @@ impl App {
                 "fs change refresh timing"
             );
             self.schedule_save();
+        } else if desktop {
+            // Explorer's own 刷新 on the desktop (right-click 刷新 / F5) arrives as a shell
+            // notice, and the re-read listing can match what the fences already show — the file
+            // set did not change, only the view did. Without this branch the fences then stay
+            // untouched while Explorer repaints, which is the reported "the desktop refreshes and
+            // my fences do not". The list is clean, so no icon key is dropped; only the bitmaps
+            // go, and they reload lazily (no re-extraction, no stall).
+            tracing::info!("desktop refresh notice; fences repainting");
+            self.refresh_all_as(true);
         }
         self.push_workspace_summary();
     }

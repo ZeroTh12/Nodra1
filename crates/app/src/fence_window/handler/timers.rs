@@ -139,7 +139,9 @@ pub(super) fn on_timer_scroll_repeat(
             let step = scroll_step_for(hit, g.view_h, row_step);
             let at_end = (step < 0.0 && target <= 0.0) || (step > 0.0 && target >= g.max_scroll);
             if at_end {
-                window::kill_timer(hwnd, TIMER_SCROLL_REPEAT);
+                // Keep the repeat armed and drop this step: the content can still move (wheel,
+                // a longer list), and the press must resume without releasing the button.
+                window::set_timer(hwnd, TIMER_SCROLL_REPEAT, SCROLL_PAGE_REPEAT_MS);
             } else {
                 v.scroll_to(target + step, motion::FASTER);
                 if v.scroll_anim.is_none() {
@@ -457,6 +459,55 @@ pub(super) fn on_timer_peek_close(
             v.peeking = false;
             v.start_roll_anim(true);
         }
+    }
+    Some(0)
+}
+
+/// TIMER_EDGE_HIDE_LINGER / TIMER_EDGE_HIDE_PROBE: 贴边隐藏两阶段定时器。
+///   - LINGER (800ms): 鼠标离开栅栏后触发 → 启动 Hiding 缓动（帧驱动）。
+///   - PROBE  (300ms): 鼠标在感应区停留够久 → 启动 Showing 缓动（帧驱动）。
+/// 两个 timer 都只负责"切换状态 + 启缓动"，SetWindowPos 逐帧推进交给 FrameClock
+/// （见 FenceViewState::tick → EdgeHideState::tick）。
+pub(super) fn on_timer_edge_hide(
+    h: &HandlerCtx,
+    hwnd: HWND,
+    wparam: usize,
+    _lparam: isize,
+) -> Option<isize> {
+    let HandlerCtx { view, .. } = h;
+    // timer 可能在 fence 正在被销毁或状态机已经转移时才到达 → kill 掉以防重入。
+    if wparam == TIMER_EDGE_HIDE_LINGER {
+        window::kill_timer(hwnd, TIMER_EDGE_HIDE_LINGER);
+    } else if wparam == TIMER_EDGE_HIDE_PROBE {
+        window::kill_timer(hwnd, TIMER_EDGE_HIDE_PROBE);
+    }
+    // 菜单打开期间（WM_ENTERMENULOOP..WM_EXITMENULOOP）绝不启动贴边隐藏：
+    // TrackPopupMenuEx 是模态循环，菜单还开着时把栅栏拖出屏幕，会让 owner
+    // 窗口被移走 → 点不到"重命名"、右键即卡死崩溃。这里直接吞掉该次触发。
+    if h.menu_open.get() {
+        return Some(0);
+    }
+    let Ok(mut guard) = view.try_borrow_mut() else {
+        // 和 TIMER_RENAME 等一样：如果此时 WndProc 正在被我们自己持有，延迟重试。
+        // POLL 是低频轮询，重试也必须保持它的节奏，不能变成 16ms 的空转。
+        let retry = if wparam == TIMER_EDGE_HIDE_POLL {
+            EDGE_HIDE_POLL_MS
+        } else {
+            16
+        };
+        window::set_timer(hwnd, wparam, retry);
+        return Some(0);
+    };
+    let Some(v) = guard.as_mut() else {
+        return Some(0);
+    };
+    let before = v.edge_hide.state;
+    v.edge_hide.on_timer(hwnd, wparam);
+    // 状态机进入缓动（Hiding / Showing）：帧时钟开始逐帧驱动 SetWindowPos。
+    // Hidden / Probing 不走帧时钟（见 EdgeHideState::tick），由 TIMER_EDGE_HIDE_POLL 低频轮询。
+    let after = v.edge_hide.state;
+    if after != before && matches!(after, EdgeHide::Hiding | EdgeHide::Showing) {
+        v.frames.request();
     }
     Some(0)
 }

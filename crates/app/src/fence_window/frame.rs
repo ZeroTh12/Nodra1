@@ -74,6 +74,8 @@ impl FenceViewState {
             let _ = self.draw_chrome_panel();
             more |= self.chrome_busy;
         }
+        // 贴边隐藏逐帧推进：Hidden（60Hz 轮询感应区）、Hiding / Showing（SetWindowPos 缓动）。
+        more |= self.edge_hide.tick(self.hwnd, now);
         more
     }
 }

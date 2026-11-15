@@ -24,6 +24,8 @@ pub(super) fn on_mousemove(
         return Some(0);
     };
     v.set_mouse_inside(true);
+    // 贴边隐藏：鼠标进入栅栏客户区 → 取消一切隐藏/显示流程，回 Idle。
+    v.edge_hide.on_mouse_entered_window(hwnd);
     if v.marquee.is_some() {
         // Pointer outside the item area: auto-scroll per frame while the
         // button is down (`marquee_autoscroll` in `tick`).

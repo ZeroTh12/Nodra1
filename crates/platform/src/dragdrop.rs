@@ -613,7 +613,12 @@ pub fn shell_folder_drop(
             return Ok(DropEffect::None);
         }
         effect = allowed;
-        target.Drop(data, modifiers, pt, &mut effect).ok()?;
+        if let Err(e) = target.Drop(data, modifiers, pt, &mut effect).ok() {
+            // Drop failed: balance the DragEnter anyway so the target drops its highlight and
+            // held data object.
+            let _ = target.DragLeave();
+            return Err(e);
+        }
         Ok(DropEffect::from_raw(effect))
     }
 }

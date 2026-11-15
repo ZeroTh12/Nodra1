@@ -57,15 +57,23 @@ fn gnu_embed(out_dir: &Path, ico: &str) {
     let package = env::var("CARGO_PKG_NAME").unwrap_or_default();
     let ico_copy = out_dir.join("pecofence.ico");
     if std::fs::copy(ico, &ico_copy).is_err() {
-        println!("cargo:warning=could not copy the icon beside windres; building without an embedded icon");
+        println!(
+            "cargo:warning=could not copy the icon beside windres; building without an embedded icon"
+        );
         return;
     }
     let manifest = out_dir.join("pecofence.manifest");
     std::fs::write(&manifest, SEGMENT_HEAP_MANIFEST).expect("write manifest");
     let rc_path = out_dir.join("pecofence.rc");
     let with_manifest = package == "pecofence";
-    std::fs::write(&rc_path, rc_source("pecofence.ico", with_manifest.then_some("pecofence.manifest")))
-        .expect("write .rc");
+    std::fs::write(
+        &rc_path,
+        rc_source(
+            "pecofence.ico",
+            with_manifest.then_some("pecofence.manifest"),
+        ),
+    )
+    .expect("write .rc");
     let obj_path = out_dir.join("pecofence.res.o");
     let status = Command::new(&windres)
         .current_dir(out_dir)

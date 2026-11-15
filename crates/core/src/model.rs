@@ -408,6 +408,10 @@ pub struct RollUpSettings {
     /// Double-clicking the title and the fence menu still roll the fence up and down.
     #[serde(default)]
     pub hide_count_and_chevron: bool,
+    /// 鼠标离开贴边的栅栏延迟后，栅栏自动滑出屏幕；鼠标靠近同一边的感应区并停留后滑回。
+    /// 默认关闭：避免现有用户首次看到栅栏自己滑走的困惑。
+    #[serde(default)]
+    pub edge_hide: bool,
 }
 
 impl Default for RollUpSettings {
@@ -424,6 +428,7 @@ impl Default for RollUpSettings {
             push_neighbors: true,
             switch_tab_on_hover: false,
             hide_count_and_chevron: false,
+            edge_hide: false,
         }
     }
 }
@@ -468,7 +473,9 @@ pub struct SelectionSettings {
 
 impl Default for SelectionSettings {
     fn default() -> Self {
-        Self { clear_on_leave: false }
+        Self {
+            clear_on_leave: false,
+        }
     }
 }
 

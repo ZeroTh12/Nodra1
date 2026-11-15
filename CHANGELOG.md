@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Fences can hide at a screen edge (local build, not upstream). A fence standing against an edge of its screen slides out of sight a moment after the pointer leaves it, and slides back when the pointer comes to that edge and rests in the sensing zone for a moment; the desktop icons behind it stay usable. Off by default: `pecofence-cli settings set rollUp.edgeHide true` (or `"edgeHide": true` under `rollUp` in `config.json`) turns it on. A hidden fence wakes nothing: it is probed a few times a second instead of on every refresh.
+- A smoother fence (local build, not upstream). Item names were shaped again for every visible icon on every redrawn frame, and the fence's own clocks kept ticking at the screen's refresh rate even when nothing moved; names are now shaped once and the clocks stop while the fence is still, so hovering, scrolling and dragging stay at the refresh rate on a busy desktop instead of occasionally dropping frames.
+- Dragging a fence no longer asks Windows for every other fence window on every pointer message, and a desktop re-scan (every minute, and at a start) creates one shortcut reader for all `.lnk` files instead of one per file, so a large desktop no longer freezes the fences for a moment during either.
+- 刷新 on the desktop (Explorer's right-click 刷新 or F5) now repaints the fences and re-reads their icons (local build, not upstream). The notice used to be dropped when the re-read listing happened to match what the fences showed, so a folder preview or an icon that had gone stale stayed stale until the next minute.
+- Uninstalling asks whether to delete the settings and fences data too (local build, not upstream). The default answer keeps them, which is what an in-app upgrade does silently.
+
 ## 0.2.5
 
 - Rounded icon, everywhere (local build, not upstream). The shipped icon was a full-bleed square, so the installer, the app, the uninstaller and the tray showed hard 90° corners; every size of the icon (and the tray glyph rendered from the same picture) now has antialiased rounded corners, 22 % of the side, matching the fences' radius language.

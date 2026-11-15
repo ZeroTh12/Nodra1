@@ -17,32 +17,31 @@ pub(super) fn merge_target_under_cursor_excluding(me: HWND, also: HWND) -> Optio
 }
 
 pub(super) fn merge_target_at(me: HWND, also: HWND, point: (i32, i32)) -> Option<HWND> {
-    desktop::windows_of_class(anchor::FENCE_CLASS)
-        .into_iter()
-        .find(|&w| {
-            if w == me || w == also || !desktop::is_visible(w) {
-                return false;
-            }
-            let r = window::window_rect(w);
-            let title_h = (36.0 * monitors::dpi_for_window(w).max(96) as f32 / 96.0) as i32;
-            if point.0 < r.left || point.0 >= r.right || point.1 < r.top || point.1 >= r.bottom {
-                return false;
-            }
-            // A fence with a left tab column has no title row: the column takes the drop.
-            // This process's fence windows share its UI thread, so the message is a direct
-            // call; another instance's windows (which cannot take a merge anyway) are never
-            // sent it, as a hung one would block the drag.
-            let rail = if desktop::window_pid(w) == std::process::id() {
-                window::send_message(w, WM_APP_TAB_RAIL, 0, 0) as i32
-            } else {
-                0
-            };
-            if rail > 0 {
-                point.0 < r.left + rail
-            } else {
-                point.1 < r.top + title_h
-            }
-        })
+    other_fences(me).into_iter().find_map(|(w, r)| {
+        if w == also {
+            return None;
+        }
+        // Bounds first: the per-window DPI query is the expensive part below.
+        if point.0 < r.left || point.0 >= r.right || point.1 < r.top || point.1 >= r.bottom {
+            return None;
+        }
+        let title_h = (36.0 * monitors::dpi_for_window(w).max(96) as f32 / 96.0) as i32;
+        // A fence with a left tab column has no title row: the column takes the drop.
+        // This process's fence windows share its UI thread, so the message is a direct
+        // call; another instance's windows (which cannot take a merge anyway) are never
+        // sent it, as a hung one would block the drag.
+        let rail = if desktop::window_pid(w) == std::process::id() {
+            window::send_message(w, WM_APP_TAB_RAIL, 0, 0) as i32
+        } else {
+            0
+        };
+        let on_target = if rail > 0 {
+            point.0 < r.left + rail
+        } else {
+            point.1 < r.top + title_h
+        };
+        on_target.then_some(w)
+    })
 }
 
 thread_local! {
@@ -134,13 +133,40 @@ pub(super) fn hide_drag_feedback(behavior: &Behavior) {
     }
 }
 
-/// Screen rectangles of the other fence windows that are showing.
-pub(super) fn other_fence_rects(me: HWND) -> Vec<RECT> {
-    desktop::windows_of_class(anchor::FENCE_CLASS)
+/// The visible fence windows other than `me`, with their screen rectangles.
+///
+/// Cached for a moment: the other fences do not move while one of them is dragged or resized,
+/// yet `WM_MOVING` / `WM_SIZING` arrive dozens of times a second, and every call used to
+/// enumerate all top-level windows (`EnumWindows`) plus a rect (and DPI) query per fence —
+/// enough to make dragging stutter on a busy desktop.
+fn other_fences(me: HWND) -> Vec<(HWND, RECT)> {
+    use std::time::{Duration, Instant};
+    const TTL: Duration = Duration::from_millis(150);
+    thread_local! {
+        static CACHE: std::cell::RefCell<Option<(HWND, Instant, Vec<(HWND, RECT)>)>> =
+            const { std::cell::RefCell::new(None) };
+    }
+    let cached = CACHE.with(|c| {
+        c.borrow()
+            .as_ref()
+            .filter(|(h, at, _)| *h == me && at.elapsed() < TTL)
+            .map(|(_, _, fences)| fences.clone())
+    });
+    if let Some(fences) = cached {
+        return fences;
+    }
+    let fences: Vec<(HWND, RECT)> = desktop::windows_of_class(anchor::FENCE_CLASS)
         .into_iter()
         .filter(|&w| w != me && desktop::is_visible(w))
-        .map(window::window_rect)
-        .collect()
+        .map(|w| (w, window::window_rect(w)))
+        .collect();
+    CACHE.with(|c| *c.borrow_mut() = Some((me, Instant::now(), fences.clone())));
+    fences
+}
+
+/// Screen rectangles of the other fence windows that are showing.
+pub(super) fn other_fence_rects(me: HWND) -> Vec<RECT> {
+    other_fences(me).into_iter().map(|(_, r)| r).collect()
 }
 
 /// Work area of the monitor under `rect`'s centre.
@@ -253,6 +279,18 @@ impl Cells {
         let n = ((size as f32 - self.fixed) / self.step).round().max(1.0);
         (self.fixed + n * self.step).round() as i32
     }
+
+    /// The nearest whole-cell size when `size` is within `magnet` device px of it; otherwise
+    /// `size` itself. Free sizes are what let an edge be fine-tuned between two grid steps;
+    /// the magnet keeps the familiar pull onto a whole column / row at the cell boundaries.
+    fn snap_or_free(self, size: i32, magnet: i32) -> i32 {
+        let nearest = self.nearest(size);
+        if (nearest - size).abs() <= magnet.max(0) {
+            nearest
+        } else {
+            size
+        }
+    }
 }
 
 /// How a fence window may be resized (device px).
@@ -261,6 +299,9 @@ pub(super) struct SizeRules {
     /// Whole icon columns / rows (「调整大小时按整行整列对齐」); None = any size.
     pub cols: Option<Cells>,
     pub rows: Option<Cells>,
+    /// How close (device px) a dragged edge has to come to a whole cell before it is pulled
+    /// onto it; 0 (Alt held) leaves every size between the cells free.
+    pub magnet: i32,
     pub min_w: i32,
     pub min_h: i32,
     /// Rolled up: exactly this tall (the title bar), whichever edge is dragged.
@@ -280,9 +321,10 @@ pub(super) struct Neighbours<'a> {
 /// WM_SIZING: places the dragged `edges` of `rect` (where the pointer puts them; `cur` is the
 /// window now). With `near`, an edge within `dist` of an alignment target goes there, whatever
 /// the icon sizes: another fence's edge, a gap outside a fence across from it, or the work
-/// area's edge a gap inside. Otherwise it takes whole cells when `rules` has them. An edge never
-/// passes a fence lying beyond it (it stops a gap short). Returns the guides along dragged edges
-/// that are level with another fence's edge.
+/// area's edge a gap inside. Otherwise the edge keeps the pointer's own position and is pulled
+/// onto a whole cell only within `rules.magnet`, so a fence can be fine-tuned between the grid
+/// steps. An edge never passes a fence lying beyond it (it stops a gap short). Returns the
+/// guides along dragged edges that are level with another fence's edge.
 pub(super) fn size_among(
     rect: &mut RECT,
     cur: &RECT,
@@ -297,10 +339,28 @@ pub(super) fn size_among(
     };
     if edges.right {
         let t = targets(true, true, rect);
-        rect.right = place_edge(rect.left, rect.right, 1, rules.cols, rules.min_w, &t, dist);
+        rect.right = place_edge(
+            rect.left,
+            rect.right,
+            1,
+            rules.cols,
+            rules.magnet,
+            rules.min_w,
+            &t,
+            dist,
+        );
     } else if edges.left {
         let t = targets(true, false, rect);
-        rect.left = place_edge(rect.right, rect.left, -1, rules.cols, rules.min_w, &t, dist);
+        rect.left = place_edge(
+            rect.right,
+            rect.left,
+            -1,
+            rules.cols,
+            rules.magnet,
+            rules.min_w,
+            &t,
+            dist,
+        );
     }
     if let Some(h) = rules.rolled_h {
         // Keyboard SC_SIZE can still send top / bottom codes to a rolled fence.
@@ -311,10 +371,28 @@ pub(super) fn size_among(
         }
     } else if edges.bottom {
         let t = targets(false, true, rect);
-        rect.bottom = place_edge(rect.top, rect.bottom, 1, rules.rows, rules.min_h, &t, dist);
+        rect.bottom = place_edge(
+            rect.top,
+            rect.bottom,
+            1,
+            rules.rows,
+            rules.magnet,
+            rules.min_h,
+            &t,
+            dist,
+        );
     } else if edges.top {
         let t = targets(false, false, rect);
-        rect.top = place_edge(rect.bottom, rect.top, -1, rules.rows, rules.min_h, &t, dist);
+        rect.top = place_edge(
+            rect.bottom,
+            rect.top,
+            -1,
+            rules.rows,
+            rules.magnet,
+            rules.min_h,
+            &t,
+            dist,
+        );
     }
     let Some(n) = near else {
         return Vec::new();
@@ -415,12 +493,14 @@ fn push_guide(lines: &mut Vec<GuideLine>, vertical: bool, at: i32, from: i32, to
 
 /// Where a dragged edge goes: `anchor` is the opposite edge, `edge` the pointer's, `sign` +1 for
 /// a right / bottom edge and -1 for a left / top one. The nearest target within `dist` that
-/// leaves at least `min` wins; else whole `cells`, else the pointer (at least `min`).
+/// leaves at least `min` wins; else the pointer's own size, pulled onto whole `cells` only
+/// within `magnet` (at least `min`).
 fn place_edge(
     anchor: i32,
     edge: i32,
     sign: i32,
     cells: Option<Cells>,
+    magnet: i32,
     min: i32,
     targets: &[i32],
     dist: i32,
@@ -432,7 +512,11 @@ fn place_edge(
         .min_by_key(|&t| (t - edge).abs())
         .unwrap_or_else(|| {
             let size = (edge - anchor) * sign;
-            anchor + sign * cells.map_or(size, |c| c.nearest(size)).max(min)
+            anchor
+                + sign
+                    * cells
+                        .map_or(size, |c| c.snap_or_free(size, magnet))
+                        .max(min)
         })
 }
 

@@ -653,7 +653,11 @@ impl App {
                                     } else {
                                         let d = retry_backoff.get();
                                         retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
-                                        window::set_timer(hwnd, TIMER_FS, d.max(FS_STORM_MS as u32));
+                                        window::set_timer(
+                                            hwnd,
+                                            TIMER_FS,
+                                            d.max(FS_STORM_MS as u32),
+                                        );
                                     }
                                 }
                                 TIMER_GPU_TRIM => {
@@ -746,7 +750,11 @@ impl App {
                                     } else {
                                         let d = retry_backoff.get();
                                         retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
-                                        window::set_timer(hwnd, TIMER_WALLPAPER, d.max(FIRST_CHECK_MS));
+                                        window::set_timer(
+                                            hwnd,
+                                            TIMER_WALLPAPER,
+                                            d.max(FIRST_CHECK_MS),
+                                        );
                                     }
                                 }
                                 TIMER_WALLPAPER_POLL => {
@@ -789,7 +797,11 @@ impl App {
                                         } else {
                                             let d = retry_backoff.get();
                                             retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
-                                            window::set_timer(hwnd, TIMER_PEEK_FOCUS_RETRY, d.max(50));
+                                            window::set_timer(
+                                                hwnd,
+                                                TIMER_PEEK_FOCUS_RETRY,
+                                                d.max(50),
+                                            );
                                         }
                                     }
                                 }
@@ -826,7 +838,11 @@ impl App {
                                     } else {
                                         let d = retry_backoff.get();
                                         retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
-                                        window::set_timer(hwnd, TIMER_SHUTDOWN_CANCELLED, d.max(250));
+                                        window::set_timer(
+                                            hwnd,
+                                            TIMER_SHUTDOWN_CANCELLED,
+                                            d.max(250),
+                                        );
                                     }
                                 }
                                 TIMER_SYSTEM_SETTINGS_RETRY => {
@@ -839,7 +855,11 @@ impl App {
                                     } else {
                                         let d = retry_backoff.get();
                                         retry_backoff.set((d * 2).min(RETRY_BACKOFF_MAX));
-                                        window::set_timer(hwnd, TIMER_SYSTEM_SETTINGS_RETRY, d.max(250));
+                                        window::set_timer(
+                                            hwnd,
+                                            TIMER_SYSTEM_SETTINGS_RETRY,
+                                            d.max(250),
+                                        );
                                     }
                                 }
                                 TIMER_TRAY_RETRY => {
@@ -1143,6 +1163,7 @@ impl App {
                 selection_clear_on_leave: std::cell::Cell::new(
                     state.config.settings.selection.clear_on_leave,
                 ),
+                edge_hide_enabled: std::cell::Cell::new(state.config.settings.roll_up.edge_hide),
                 wheel_lines: std::cell::Cell::new(sysparams::wheel_scroll_lines()),
                 drop_preview: std::cell::RefCell::new(
                     crate::drop_preview::DropPreview::create()
@@ -1336,8 +1357,8 @@ impl App {
         {
             t.show_info(
                 "Nodra",
-                    &pecofence_core::i18n::format(
-                        "无法读取配置文件（可能是较新版本的 Nodra 写入的），原文件已改名为 {0}。",
+                &pecofence_core::i18n::format(
+                    "无法读取配置文件（可能是较新版本的 Nodra 写入的），原文件已改名为 {0}。",
                     &[moved
                         .file_name()
                         .map(|n| n.to_string_lossy().into_owned())

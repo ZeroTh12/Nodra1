@@ -445,6 +445,11 @@ pub fn cond_matches(cond: &Cond, facts: &ItemFacts) -> bool {
                 && !category_matches(TypeCategory::Shortcuts, facts)
         }
         Cond::SizeMb { min, max } => {
+            // Folders and namespace items report no size (0 bytes): treat the size as unknown
+            // rather than as 0 MB, or a max-only rule would claim every folder.
+            if facts.is_folder || facts.origin == Origin::Namespace {
+                return false;
+            }
             let mb = facts.size_bytes as f64 / (1024.0 * 1024.0);
             min.is_none_or(|m| mb >= m) && max.is_none_or(|m| mb <= m)
         }

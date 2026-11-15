@@ -324,6 +324,11 @@ impl FenceViewState {
         let band_top = layout.fixed_top();
         let band_h = self.band_h(&layout);
         let (track_top, track_h) = scrollbar_track(band_top, band_h);
+        // A track shorter than the minimum thumb would show a thumb covering the whole track:
+        // no travel to drag and no track left to page on. Hide the bar; the wheel still works.
+        if track_h <= SCROLLBAR_THUMB_MIN {
+            return None;
+        }
         let content_h = layout.content_height();
         let thumb_h = scrollbar_thumb_h(track_h, view_h, content_h);
         let thumb_y =
