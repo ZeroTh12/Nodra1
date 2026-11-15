@@ -212,6 +212,7 @@ pub(super) fn on_timer_peek_open(
         // window rect: do not fight it with a peek animation.
         return Some(0);
     }
+    let mut opened = false;
     {
         let mut guard = view.borrow_mut();
         if let Some(v) = guard.as_mut()
@@ -226,7 +227,13 @@ pub(super) fn on_timer_peek_open(
                 v.expanded_h_px = v.title_h_px() + (200.0 * v.scale()) as i32;
             }
             v.start_roll_anim(false);
+            opened = true;
         }
+    }
+    if opened {
+        // 展开动画进行中就开始看门狗：鼠标在 333ms 的展开动画中途离开时，收起请求会被
+        // 动画挡住（以前直接丢弃 → 一直停在展开状态），而 WM_MOUSELEAVE 也不一定送到。
+        window::set_timer(hwnd, TIMER_PEEK_CLOSE, PEEK_WATCH_MS);
     }
     Some(0)
 }
@@ -442,23 +449,43 @@ pub(super) fn on_timer_peek_close(
     // slide back from under the pointer.
     let inside = (pt.x >= r.left && pt.x < r.right && pt.y >= r.top && pt.y < r.bottom)
         || h.behavior.holds_open(hwnd, pt);
+    let peeking = view
+        .try_borrow()
+        .ok()
+        .is_some_and(|g| g.as_ref().is_some_and(|v| v.peeking));
     if inside || popup {
-        window::set_timer(hwnd, TIMER_PEEK_CLOSE, PEEK_CLOSE_MS);
+        // Keep one check running while the peek is up: WM_MOUSELEAVE is not always delivered
+        // (SetCapture during a drag, a window resize in flight, the pointer handed to another
+        // window), and without it the fence would stay expanded for good. A menu can stay open
+        // for a long time, so it gets the relaxed pace; the plain hover case is re-checked
+        // PEEK_WATCH_MS so a lost leave still rolls up at once.
+        if peeking {
+            let retry = if popup { PEEK_CLOSE_MS } else { PEEK_WATCH_MS };
+            window::set_timer(hwnd, TIMER_PEEK_CLOSE, retry);
+        }
         return Some(0);
     }
+    // The pointer is gone: roll up now. A peek that is still opening is reversed mid-flight
+    // (`start_roll_anim` retargets a running tween), so a fast pass never leaves the fence
+    // expanded under a pointer that has already left.
+    let mut held = false;
     {
         let mut guard = view.borrow_mut();
         if let Some(v) = guard.as_mut()
             && !v.retired
             && v.peeking
-            && v.roll_anim.is_none()
-            && v.drag.is_none()
-            && !v.ole_drag
-            && v.marquee.is_none()
         {
-            v.peeking = false;
-            v.start_roll_anim(true);
+            if v.drag.is_none() && !v.ole_drag && v.marquee.is_none() {
+                v.peeking = false;
+                v.start_roll_anim(true);
+            } else {
+                // A drag / marquee owns the pointer: keep checking while it lasts.
+                held = true;
+            }
         }
+    }
+    if held {
+        window::set_timer(hwnd, TIMER_PEEK_CLOSE, PEEK_WATCH_MS);
     }
     Some(0)
 }

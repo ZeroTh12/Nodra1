@@ -123,6 +123,10 @@ pub const SC_MOVE_CAPTION: usize = 0xF012;
 pub(super) const SHADOW_MIN_INTERVAL_MS: u128 = 16;
 /// Hover-peek closes this long after the pointer left (no Fluent reference value).
 pub(super) const PEEK_CLOSE_MS: u32 = 400;
+/// Hover-peek watchdog: while a fence is peeked open its pointer position is re-checked this
+/// often, so a leave that never arrives as WM_MOUSELEAVE (a resize in flight, the pointer taken
+/// by another window, the open animation still running) still rolls the fence up at once.
+pub(super) const PEEK_WATCH_MS: u32 = 80;
 pub(super) const SNAP_DIST_DIP: i32 = 10;
 /// Tab header geometry (DIPs).
 pub(super) const TAB_MIN_W: f32 = 48.0;
